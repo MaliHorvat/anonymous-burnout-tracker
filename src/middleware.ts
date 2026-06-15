@@ -13,9 +13,14 @@ export default clerkMiddleware(async (auth, req) => {
   }
 });
 
+// Clerk middleware samo na straneh, ki ga potrebujejo — javna anketa (/s/*) in /api/submit brez handshake.
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    "/dashboard(.*)",
+    "/setup(.*)",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    "/api/dashboard(.*)",
+    "/api/organization(.*)",
   ],
 };
