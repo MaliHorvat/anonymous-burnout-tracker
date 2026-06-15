@@ -51,9 +51,9 @@ export function BurnoutForm() {
 
   if (done) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <p className="text-lg font-semibold text-emerald-900">Hvala za vaš odgovor</p>
-        <p className="mt-2 text-sm text-emerald-800">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-800 dark:bg-emerald-950/50">
+        <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">Hvala za vaš odgovor</p>
+        <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">
           Vaši podatki so bili anonimno shranjeni. Lahko zaprete stran.
         </p>
       </div>
@@ -64,15 +64,15 @@ export function BurnoutForm() {
     <form onSubmit={onSubmit} className="space-y-8">
       {QUESTIONS.map((q) => (
         <fieldset key={q.key} className="space-y-3">
-          <legend className="text-sm font-medium text-slate-800">{q.label}</legend>
+          <legend className="text-sm font-medium text-slate-800 dark:text-slate-100">{q.label}</legend>
           <div className="flex flex-wrap gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <label
                 key={n}
                 className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border px-3 text-sm font-medium transition ${
                   values[q.key] === n
-                    ? "border-teal-600 bg-teal-600 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                    ? "border-teal-600 bg-teal-600 text-white dark:border-teal-500 dark:bg-teal-500"
+                    : "border-slate-200 bg-white text-slate-800 hover:border-teal-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-teal-500"
                 }`}
               >
                 <input
@@ -87,16 +87,16 @@ export function BurnoutForm() {
               </label>
             ))}
           </div>
-          <p className="text-xs text-slate-500">1 = zelo slabo · 5 = zelo dobro</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">1 = zelo slabo · 5 = zelo dobro</p>
         </fieldset>
       ))}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+        className="w-full rounded-lg bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60 dark:bg-teal-500 dark:hover:bg-teal-600"
       >
         {loading ? "Pošiljam..." : "Oddaj anonimno"}
       </button>

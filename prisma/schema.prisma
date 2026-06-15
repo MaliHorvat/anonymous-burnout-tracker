@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Submission {
+  id              String   @id @default(cuid())
+  workload        Int      @db.TinyInt
+  feelingValued   Int      @map("feeling_valued") @db.TinyInt
+  enoughResources Int      @map("enough_resources") @db.TinyInt
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("submissions")
+}

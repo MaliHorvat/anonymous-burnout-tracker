@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDashboardAuthenticated } from "@/lib/dashboard-auth";
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { isDbConfigured, prisma } from "@/lib/db";
 import type { DashboardStats } from "@/lib/types";
 
 function average(nums: number[]): number {
@@ -13,33 +13,35 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Neavtorizirano." }, { status: 401 });
   }
 
+  if (!isDbConfigured() || !prisma) {
+    return NextResponse.json({ ok: false, error: "Baza ni nastavljena." }, { status: 503 });
+  }
+
   try {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("submissions")
-      .select("id, workload, feeling_valued, enough_resources, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const rows = await prisma.submission.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    });
 
-    if (error) {
-      console.error("[dashboard stats]", error.message);
-      return NextResponse.json({ ok: false, error: "Branje podatkov ni uspelo." }, { status: 500 });
-    }
-
-    const rows = data ?? [];
     const stats: DashboardStats = {
       count: rows.length,
       averages: {
         workload: average(rows.map((r) => r.workload)),
-        feeling_valued: average(rows.map((r) => r.feeling_valued)),
-        enough_resources: average(rows.map((r) => r.enough_resources)),
+        feeling_valued: average(rows.map((r) => r.feelingValued)),
+        enough_resources: average(rows.map((r) => r.enoughResources)),
       },
-      recent: rows.slice(0, 20),
+      recent: rows.slice(0, 20).map((r) => ({
+        id: r.id,
+        workload: r.workload,
+        feeling_valued: r.feelingValued,
+        enough_resources: r.enoughResources,
+        created_at: r.createdAt.toISOString(),
+      })),
     };
 
     return NextResponse.json({ ok: true, stats });
   } catch (err) {
     console.error("[dashboard stats]", err);
-    return NextResponse.json({ ok: false, error: "Nepričakovana napaka." }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Branje podatkov ni uspelo." }, { status: 500 });
   }
 }
