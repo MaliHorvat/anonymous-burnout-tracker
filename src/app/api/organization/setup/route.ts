@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isDbConfigured, prisma } from "@/lib/db";
 import { getOrganizationByClerkId, surveyPublicUrl } from "@/lib/org";
+import { seedDefaultQuestions } from "@/lib/survey-service";
 import { isValidSlug, slugify } from "@/lib/slug";
 
 export async function GET() {
@@ -83,6 +84,8 @@ export async function POST(request: Request) {
         setupCompleted: true,
       },
     });
+
+    await seedDefaultQuestions(org.id);
 
     const origin = process.env.NEXT_PUBLIC_APP_URL || "";
     return NextResponse.json({

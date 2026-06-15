@@ -109,7 +109,7 @@ export function DashboardView() {
       {section === "odgovori" ? <DashboardAnswers stats={stats} /> : null}
       {section === "opombe" ? <DashboardNotes stats={stats} /> : null}
       {section === "analitika" ? <DashboardAnalytics stats={stats} /> : null}
-      {section === "vprasanja" ? <DashboardQuestions /> : null}
+      {section === "vprasanja" ? <DashboardQuestions onSaved={() => void loadStats()} /> : null}
       {section === "nastavitve" ? <DashboardSettings organization={orgInfo} /> : null}
     </DashboardChrome>
   );

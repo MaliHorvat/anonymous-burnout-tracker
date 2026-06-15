@@ -14,9 +14,9 @@ import {
   Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { SCORE_QUESTIONS, rowAverage } from "@/lib/survey-questions";
+import { rowAverageFromAnswers } from "@/lib/survey-service";
 import { copyText } from "@/lib/copy-text";
-import type { DashboardStats, OrganizationInfo } from "@/lib/types";
+import type { DashboardStats, OrganizationInfo, SurveyQuestionRow } from "@/lib/types";
 
 const SCORE_ICONS: Record<string, LucideIcon> = {
   workload: Briefcase,
@@ -28,6 +28,14 @@ const SCORE_ICONS: Record<string, LucideIcon> = {
   job_satisfaction: Smile,
   recommend_employer: Star,
 };
+
+function activeQuestions(stats: DashboardStats): SurveyQuestionRow[] {
+  return stats.questions.filter((q) => q.active);
+}
+
+function rowAverage(row: DashboardStats["recent"][number], keys: string[]): number {
+  return rowAverageFromAnswers(row.answers, keys);
+}
 
 function ScoreCard({ label, value, icon: Icon }: { label: string; value: number; icon: LucideIcon }) {
   const pct = Math.min(100, (value / 5) * 100);
@@ -50,7 +58,17 @@ function ScoreCard({ label, value, icon: Icon }: { label: string; value: number;
   );
 }
 
-function ResponsesTable({ rows, title, compact }: { rows: DashboardStats["recent"]; title: string; compact?: boolean }) {
+function ResponsesTable({
+  rows,
+  questions,
+  title,
+  compact,
+}: {
+  rows: DashboardStats["recent"];
+  questions: SurveyQuestionRow[];
+  title: string;
+  compact?: boolean;
+}) {
   if (rows.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
@@ -59,7 +77,8 @@ function ResponsesTable({ rows, title, compact }: { rows: DashboardStats["recent
     );
   }
 
-  const visibleQuestions = compact ? SCORE_QUESTIONS.slice(0, 4) : SCORE_QUESTIONS;
+  const visibleQuestions = compact ? questions.slice(0, 4) : questions;
+  const keys = visibleQuestions.map((q) => q.key);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -89,11 +108,11 @@ function ResponsesTable({ rows, title, compact }: { rows: DashboardStats["recent
                 </td>
                 {visibleQuestions.map((q) => (
                   <td key={q.key} className="px-3 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                    {row[q.key]}
+                    {row.answers[q.key] ?? "—"}
                   </td>
                 ))}
                 <td className="px-4 py-3 text-center font-semibold text-teal-800 dark:text-teal-400">
-                  {rowAverage(row).toFixed(2)}
+                  {rowAverage(row, keys).toFixed(2)}
                 </td>
                 {!compact ? (
                   <td className="max-w-[200px] truncate px-4 py-3 text-slate-600 dark:text-slate-400">
@@ -122,11 +141,13 @@ export function DashboardOverview({
   onRefresh: () => void;
 }) {
   const topCards = stats
-    ? SCORE_QUESTIONS.slice(0, 4).map((q) => ({
-        label: q.title,
-        value: stats.averages[q.key],
-        icon: SCORE_ICONS[q.key] || Briefcase,
-      }))
+    ? activeQuestions(stats)
+        .slice(0, 4)
+        .map((q) => ({
+          label: q.title,
+          value: stats.averages[q.key] ?? 0,
+          icon: SCORE_ICONS[q.key] || Briefcase,
+        }))
     : [];
 
   return (
@@ -161,7 +182,14 @@ export function DashboardOverview({
         ))}
       </div>
 
-      {stats ? <ResponsesTable rows={stats.recent.slice(0, 10)} title="Zadnji anonimni odgovori" compact /> : null}
+      {stats ? (
+        <ResponsesTable
+          rows={stats.recent.slice(0, 10)}
+          questions={activeQuestions(stats)}
+          title="Zadnji anonimni odgovori"
+          compact
+        />
+      ) : null}
     </div>
   );
 }
@@ -173,7 +201,9 @@ export function DashboardAnswers({ stats }: { stats: DashboardStats | null }) {
       <p className="text-sm text-slate-600 dark:text-slate-400">
         Seznam vseh anonimnih oddaj za vašo organizacijo. Posameznih identitet ni mogoče določiti.
       </p>
-      {stats ? <ResponsesTable rows={stats.recent} title="Anonimni odgovori" /> : null}
+      {stats ? (
+        <ResponsesTable rows={stats.recent} questions={activeQuestions(stats)} title="Anonimni odgovori" />
+      ) : null}
     </div>
   );
 }
@@ -222,14 +252,15 @@ export function DashboardNotes({ stats }: { stats: DashboardStats | null }) {
 export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) {
   if (!stats) return null;
 
-  const items = SCORE_QUESTIONS.map((q, i) => ({
+  const questions = activeQuestions(stats);
+  const items = questions.map((q, i) => ({
     label: q.title,
-    value: stats.averages[q.key],
-    color: ["bg-teal-700", "bg-teal-600", "bg-teal-500", "bg-teal-600", "bg-teal-700", "bg-teal-500", "bg-teal-600", "bg-teal-700"][i],
+    value: stats.averages[q.key] ?? 0,
+    color: ["bg-teal-700", "bg-teal-600", "bg-teal-500", "bg-teal-600", "bg-teal-700", "bg-teal-500", "bg-teal-600", "bg-teal-700"][i % 8],
   }));
 
-  const overall =
-    SCORE_QUESTIONS.reduce((sum, q) => sum + stats.averages[q.key], 0) / SCORE_QUESTIONS.length;
+  const values = items.map((i) => i.value).filter((v) => v > 0);
+  const overall = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 
   return (
     <div className="space-y-6">
@@ -243,7 +274,7 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Skupno povprečje</p>
         <p className="mt-1 text-4xl font-bold text-teal-800 dark:text-teal-400">{overall.toFixed(2)}</p>
-        <p className="text-xs text-slate-500">iz vseh osmih vprašanj (lestvica 1–5)</p>
+        <p className="text-xs text-slate-500">iz aktivnih vprašanj (lestvica 1–5)</p>
       </div>
 
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -264,33 +295,7 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
   );
 }
 
-export function DashboardQuestions() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Vprašanja v anketi</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Zaposleni ocenjujejo vsako trditev na lestvici od 1 (zelo slabo) do 5 (zelo dobro). Na koncu lahko dodajo
-          neobvezne opombe.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {SCORE_QUESTIONS.map((q, i) => (
-          <div
-            key={q.key}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-          >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-teal-800 dark:bg-teal-950 dark:text-teal-300">
-              {i + 1}
-            </span>
-            <h2 className="mt-3 font-semibold text-slate-900 dark:text-slate-50">{q.title}</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{q.body}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+export { DashboardQuestionsEditor as DashboardQuestions } from "@/components/dashboard/DashboardQuestionsEditor";
 
 export function DashboardSettings({ organization }: { organization: OrganizationInfo | null }) {
   const surveyPath = organization ? `/s/${organization.slug}` : "";

@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured, prisma } from "@/lib/db";
 import { requireDashboardOrganization } from "@/lib/org";
-import { averageScores, rowAverage } from "@/lib/survey-questions";
+import {
+  averageForQuestions,
+  getAllQuestions,
+  mapQuestionRow,
+  mapSurveyConfig,
+  rowAverageFromAnswers,
+  seedDefaultQuestions,
+} from "@/lib/survey-service";
 import { mapSubmissionRow } from "@/lib/submission-mapper";
 import type { DashboardStats } from "@/lib/types";
 
@@ -23,6 +30,13 @@ export async function GET() {
   }
 
   try {
+    await seedDefaultQuestions(orgResult.org.id);
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: orgResult.org.id } });
+    const questions = await getAllQuestions(orgResult.org.id);
+    const activeQuestions = questions.filter((q) => q.active);
+    const questionRows = questions.map(mapQuestionRow);
+    const activeKeys = activeQuestions.map((q) => q.key);
+
     const rows = await prisma.submission.findMany({
       where: { organizationId: orgResult.org.id },
       orderBy: { createdAt: "desc" },
@@ -30,21 +44,15 @@ export async function GET() {
     });
 
     const mapped = rows.map(mapSubmissionRow);
-    const scoreRows = mapped.map(({ workload, feeling_valued, enough_resources, work_life_balance, team_collaboration, manager_support, job_satisfaction, recommend_employer }) => ({
-      workload,
-      feeling_valued,
-      enough_resources,
-      work_life_balance,
-      team_collaboration,
-      manager_support,
-      job_satisfaction,
-      recommend_employer,
-    }));
-
     const stats: DashboardStats = {
       count: rows.length,
       notes_count: mapped.filter((r) => r.notes).length,
-      averages: averageScores(scoreRows),
+      config: mapSurveyConfig(org),
+      questions: questionRows,
+      averages: averageForQuestions(
+        mapped.map((r) => r.answers),
+        activeKeys.length > 0 ? activeKeys : questions.map((q) => q.key),
+      ),
       recent: mapped.slice(0, 50),
       notes: mapped
         .filter((r) => r.notes)
@@ -53,7 +61,7 @@ export async function GET() {
           id: r.id,
           created_at: r.created_at,
           notes: r.notes!,
-          average: rowAverage(r),
+          average: rowAverageFromAnswers(r.answers, activeKeys),
         })),
     };
 

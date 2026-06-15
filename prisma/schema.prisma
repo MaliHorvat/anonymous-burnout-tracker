@@ -8,29 +8,54 @@ datasource db {
 }
 
 model Organization {
-  id              String       @id @default(cuid())
-  clerkOrgId      String       @unique @map("clerk_org_id")
+  id              String           @id @default(cuid())
+  clerkOrgId      String           @unique @map("clerk_org_id")
   name            String
-  slug            String       @unique
-  setupCompleted  Boolean      @default(true) @map("setup_completed")
-  createdAt       DateTime     @default(now()) @map("created_at")
+  slug            String           @unique
+  setupCompleted  Boolean          @default(true) @map("setup_completed")
+  surveyTitle     String           @default("Anonimna anketa o zadovoljstvu in izgorelosti") @map("survey_title") @db.VarChar(255)
+  surveySubtitle  String           @default("Vaši odgovori so popolnoma anonimni.") @map("survey_subtitle") @db.VarChar(500)
+  notesEnabled    Boolean          @default(true) @map("notes_enabled")
+  notesLabel      String           @default("Dodatne opombe (neobvezno)") @map("notes_label") @db.VarChar(255)
+  notesPlaceholder String          @default("Delite morebitne predloge, skrbi ali opombe — brez osebnih podatkov.") @map("notes_placeholder") @db.VarChar(500)
+  createdAt       DateTime         @default(now()) @map("created_at")
   submissions     Submission[]
+  questions       SurveyQuestion[]
 
   @@map("organizations")
+}
+
+model SurveyQuestion {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String       @db.VarChar(64)
+  title          String       @db.VarChar(255)
+  body           String       @db.VarChar(500)
+  label          String       @db.VarChar(500)
+  sortOrder      Int          @default(0) @map("sort_order")
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([organizationId, key])
+  @@index([organizationId, sortOrder])
+  @@map("survey_questions")
 }
 
 model Submission {
   id                 String       @id @default(cuid())
   organizationId     String       @map("organization_id")
   organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workload           Int          @db.TinyInt
-  feelingValued      Int          @map("feeling_valued") @db.TinyInt
-  enoughResources    Int          @map("enough_resources") @db.TinyInt
-  workLifeBalance    Int          @map("work_life_balance") @db.TinyInt
-  teamCollaboration  Int          @map("team_collaboration") @db.TinyInt
-  managerSupport     Int          @map("manager_support") @db.TinyInt
-  jobSatisfaction    Int          @map("job_satisfaction") @db.TinyInt
-  recommendEmployer  Int          @map("recommend_employer") @db.TinyInt
+  answers            Json?
+  workload           Int?         @db.TinyInt
+  feelingValued      Int?         @map("feeling_valued") @db.TinyInt
+  enoughResources    Int?         @map("enough_resources") @db.TinyInt
+  workLifeBalance    Int?         @map("work_life_balance") @db.TinyInt
+  teamCollaboration  Int?         @map("team_collaboration") @db.TinyInt
+  managerSupport     Int?         @map("manager_support") @db.TinyInt
+  jobSatisfaction    Int?         @map("job_satisfaction") @db.TinyInt
+  recommendEmployer  Int?         @map("recommend_employer") @db.TinyInt
   notes              String?      @db.Text
   createdAt          DateTime     @default(now()) @map("created_at")
 

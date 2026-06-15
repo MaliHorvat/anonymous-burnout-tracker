@@ -29,7 +29,7 @@ const NAV: { id: DashboardSection; label: string; icon: LucideIcon }[] = [
   { id: "odgovori", label: "Odgovori", icon: MessageSquare },
   { id: "opombe", label: "Opombe", icon: MessageSquarePlus },
   { id: "analitika", label: "Analitika", icon: BarChart3 },
-  { id: "vprasanja", label: "Vprašanja", icon: ClipboardList },
+  { id: "vprasanja", label: "Urejanje ankete", icon: ClipboardList },
   { id: "nastavitve", label: "Nastavitve", icon: Settings },
 ];
 

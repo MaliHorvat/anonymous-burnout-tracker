@@ -1,14 +1,32 @@
-import type { ScoreFieldKey } from "@/lib/survey-questions";
+export type SurveyQuestionRow = {
+  id: string;
+  key: string;
+  title: string;
+  body: string;
+  label: string;
+  sort_order: number;
+  active: boolean;
+};
+
+export type SurveyConfig = {
+  title: string;
+  subtitle: string;
+  notes_enabled: boolean;
+  notes_label: string;
+  notes_placeholder: string;
+};
 
 export type SubmissionRow = {
   id: string;
   created_at: string;
   notes: string | null;
-} & Record<ScoreFieldKey, number>;
+  answers: Record<string, number>;
+};
 
-export type SubmissionPayload = Record<ScoreFieldKey, number> & {
-  notes?: string | null;
+export type SubmissionPayload = {
   org_slug: string;
+  answers: Record<string, number>;
+  notes?: string | null;
 };
 
 export type OrganizationInfo = {
@@ -22,7 +40,32 @@ export type OrganizationInfo = {
 export type DashboardStats = {
   count: number;
   notes_count: number;
-  averages: Record<ScoreFieldKey, number>;
+  config: SurveyConfig;
+  questions: SurveyQuestionRow[];
+  averages: Record<string, number>;
   recent: SubmissionRow[];
   notes: { id: string; created_at: string; notes: string; average: number }[];
+};
+
+export type PublicSurvey = {
+  config: SurveyConfig;
+  questions: SurveyQuestionRow[];
+};
+
+export type QuestionInput = {
+  id?: string;
+  key?: string;
+  title: string;
+  body: string;
+  label: string;
+  active?: boolean;
+};
+
+export type SurveySettingsInput = {
+  title: string;
+  subtitle: string;
+  notes_enabled: boolean;
+  notes_label: string;
+  notes_placeholder: string;
+  questions: QuestionInput[];
 };

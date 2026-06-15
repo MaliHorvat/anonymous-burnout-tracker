@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured, prisma } from "@/lib/db";
 import { getOrganizationBySlug } from "@/lib/org";
-import { SCORE_FIELD_KEYS } from "@/lib/survey-questions";
+import {
+  getActiveQuestions,
+  NOTES_MAX_LENGTH,
+  seedDefaultQuestions,
+} from "@/lib/survey-service";
 import { parseNotes, parseScore } from "@/lib/submission-mapper";
 
 export async function POST(request: Request) {
@@ -21,34 +25,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Anketa za to podjetje ni na voljo." }, { status: 404 });
     }
 
-    const scores: Record<string, number> = {};
-    for (const key of SCORE_FIELD_KEYS) {
-      const value = parseScore(body[key]);
+    await seedDefaultQuestions(org.id);
+    const questions = await getActiveQuestions(org.id);
+    const answersInput =
+      body.answers && typeof body.answers === "object" && !Array.isArray(body.answers)
+        ? (body.answers as Record<string, unknown>)
+        : body;
+
+    const answers: Record<string, number> = {};
+    for (const q of questions) {
+      const value = parseScore(answersInput[q.key] ?? body[q.key]);
       if (value === null) {
         return NextResponse.json({ ok: false, error: "Vsa vprašanja morajo biti ocenjena (1–5)." }, { status: 400 });
       }
-      scores[key] = value;
+      answers[q.key] = value;
     }
 
-    const notes = parseNotes(body.notes);
-    if (body.notes && notes === null && typeof body.notes === "string" && body.notes.trim()) {
-      return NextResponse.json({ ok: false, error: "Opombe so predolge (največ 2000 znakov)." }, { status: 400 });
+    let notes: string | null = null;
+    if (org.notesEnabled) {
+      notes = parseNotes(body.notes, NOTES_MAX_LENGTH);
+      if (body.notes && notes === null && typeof body.notes === "string" && body.notes.trim()) {
+        return NextResponse.json({ ok: false, error: "Opombe so predolge." }, { status: 400 });
+      }
     }
 
-    const data = {
-      organizationId: org.id,
-      workload: scores.workload,
-      feelingValued: scores.feeling_valued,
-      enoughResources: scores.enough_resources,
-      workLifeBalance: scores.work_life_balance,
-      teamCollaboration: scores.team_collaboration,
-      managerSupport: scores.manager_support,
-      jobSatisfaction: scores.job_satisfaction,
-      recommendEmployer: scores.recommend_employer,
-      notes,
-    };
-
-    await prisma.submission.create({ data });
+    await prisma.submission.create({
+      data: {
+        organizationId: org.id,
+        answers,
+        notes,
+      },
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
