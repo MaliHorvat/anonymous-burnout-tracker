@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 
 const QUESTIONS = [
   { key: "workload", label: "1. Kakšna je vaša delovna obremenitev?" },
@@ -51,9 +52,12 @@ export function BurnoutForm() {
 
   if (done) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-800 dark:bg-emerald-950/50">
-        <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">Hvala za vaš odgovor</p>
-        <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">
+      <div className="rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm dark:border-emerald-800 dark:bg-slate-900">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+          <ShieldCheck className="h-7 w-7" aria-hidden />
+        </div>
+        <p className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Hvala za vaš odgovor</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           Vaši podatki so bili anonimno shranjeni. Lahko zaprete stran.
         </p>
       </div>
@@ -61,43 +65,50 @@ export function BurnoutForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form onSubmit={onSubmit} className="space-y-4">
       {QUESTIONS.map((q) => (
-        <fieldset key={q.key} className="space-y-3">
-          <legend className="text-sm font-medium text-slate-800 dark:text-slate-100">{q.label}</legend>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <label
-                key={n}
-                className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border px-3 text-sm font-medium transition ${
-                  values[q.key] === n
-                    ? "border-teal-600 bg-teal-600 text-white dark:border-teal-500 dark:bg-teal-500"
-                    : "border-slate-200 bg-white text-slate-800 hover:border-teal-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-teal-500"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={q.key}
-                  value={n}
-                  className="sr-only"
-                  checked={values[q.key] === n}
-                  onChange={() => setValues((v) => ({ ...v, [q.key]: n }))}
-                />
-                {n}
-              </label>
-            ))}
+        <fieldset
+          key={q.key}
+          className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+        >
+          <legend className="text-sm font-semibold text-slate-900 dark:text-slate-50">{q.label}</legend>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">1 = zelo slabo · 5 = zelo dobro</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[1, 2, 3, 4, 5].map((n) => {
+              const selected = values[q.key] === n;
+              return (
+                <label
+                  key={n}
+                  className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border px-3.5 text-sm font-semibold transition ${
+                    selected
+                      ? "border-teal-700 bg-teal-700 text-white shadow-sm dark:border-teal-500 dark:bg-teal-600"
+                      : "border-teal-700/30 bg-white text-teal-800 hover:border-teal-600 hover:bg-teal-50 dark:border-teal-500/40 dark:bg-slate-800 dark:text-teal-300 dark:hover:border-teal-500"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={q.key}
+                    value={n}
+                    className="sr-only"
+                    checked={selected}
+                    onChange={() => setValues((v) => ({ ...v, [q.key]: n }))}
+                  />
+                  {n}
+                </label>
+              );
+            })}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">1 = zelo slabo · 5 = zelo dobro</p>
         </fieldset>
       ))}
 
-      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+      {error ? <p className="text-center text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60 dark:bg-teal-500 dark:hover:bg-teal-600"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-600 dark:hover:bg-teal-500"
       >
+        <ShieldCheck className="h-4 w-4" aria-hidden />
         {loading ? "Pošiljam..." : "Oddaj anonimno"}
       </button>
     </form>

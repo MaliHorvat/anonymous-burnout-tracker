@@ -8,12 +8,16 @@ const OPTIONS: { id: Theme; label: string }[] = [
   { id: "system", label: "Sistem" },
 ];
 
-export function ThemeToggle() {
+export function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
   const { theme, setTheme } = useTheme();
 
   return (
     <div
-      className="flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-600 dark:bg-slate-800"
+      className={`flex rounded-lg border p-0.5 ${
+        onDark
+          ? "border-white/25 bg-white/10"
+          : "border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-800"
+      }`}
       role="group"
       aria-label="Izbira teme"
     >
@@ -26,8 +30,12 @@ export function ThemeToggle() {
             onClick={() => setTheme(opt.id)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
               active
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-50"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
+                ? onDark
+                  ? "bg-white text-teal-900 shadow-sm"
+                  : "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-50"
+                : onDark
+                  ? "text-teal-100 hover:text-white"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
             }`}
             aria-pressed={active}
           >

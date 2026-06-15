@@ -1,6 +1,14 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  DashboardAnalytics,
+  DashboardAnswers,
+  DashboardOverview,
+  DashboardQuestions,
+  DashboardSettings,
+} from "@/components/dashboard/DashboardPanels";
+import { DashboardChrome, type DashboardSection } from "@/components/layout/DashboardChrome";
 import type { DashboardStats } from "@/lib/types";
 
 type Props = {
@@ -13,6 +21,7 @@ export function DashboardView({ initialAuthed }: Props) {
   const [loginError, setLoginError] = useState("");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [section, setSection] = useState<DashboardSection>("pregled");
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -54,112 +63,49 @@ export function DashboardView({ initialAuthed }: Props) {
     await fetch("/api/dashboard/login", { method: "DELETE" });
     setAuthed(false);
     setStats(null);
+    setSection("pregled");
   }
 
   if (!authed) {
     return (
-      <form
-        onSubmit={onLogin}
-        className="mx-auto max-w-sm space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-      >
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Prijava v nadzorno ploščo</h2>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-600 dark:text-slate-300">Geslo</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-            required
-          />
-        </label>
-        {loginError ? <p className="text-sm text-red-600 dark:text-red-400">{loginError}</p> : null}
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-slate-800 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 dark:bg-slate-600 dark:hover:bg-slate-500"
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4 dark:bg-slate-950">
+        <form
+          onSubmit={onLogin}
+          className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
-          Prijava
-        </button>
-      </form>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Prijava v nadzorno ploščo</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Burnout Tracker — Admin</p>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600 dark:text-slate-300">Geslo</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              required
+            />
+          </label>
+          {loginError ? <p className="text-sm text-red-600 dark:text-red-400">{loginError}</p> : null}
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 dark:bg-teal-600"
+          >
+            Prijava
+          </button>
+        </form>
+      </div>
     );
   }
 
-  const cards = stats
-    ? [
-        { label: "Delovna obremenitev", value: stats.averages.workload },
-        { label: "Počutje cenjenosti", value: stats.averages.feeling_valued },
-        { label: "Dovolj virov", value: stats.averages.enough_resources },
-      ]
-    : [];
-
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-slate-800 dark:text-slate-200">
-          Skupaj oddaj: <strong className="text-slate-900 dark:text-slate-50">{stats?.count ?? "—"}</strong>
-          {loading ? <span className="text-slate-600 dark:text-slate-400"> · nalagam...</span> : null}
-        </p>
-        <button
-          type="button"
-          onClick={() => void loadStats()}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-        >
-          Osveži
-        </button>
-        <button
-          type="button"
-          onClick={() => void onLogout()}
-          className="text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
-        >
-          Odjava
-        </button>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        {cards.map((c) => (
-          <div
-            key={c.label}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-          >
-            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{c.label}</p>
-            <p className="mt-2 text-3xl font-bold text-teal-800 dark:text-teal-400">{c.value.toFixed(2)}</p>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">povprečje (1–5)</p>
-          </div>
-        ))}
-      </div>
-
-      {stats && stats.recent.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <table className="w-full min-w-[480px] text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Čas</th>
-                <th className="px-4 py-3 font-semibold">Obrem.</th>
-                <th className="px-4 py-3 font-semibold">Cenjenost</th>
-                <th className="px-4 py-3 font-semibold">Viri</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.recent.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
-                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                    {new Date(row.created_at).toLocaleString("sl-SI")}
-                  </td>
-                  <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                    {row.workload}
-                  </td>
-                  <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                    {row.feeling_valued}
-                  </td>
-                  <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                    {row.enough_resources}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <DashboardChrome active={section} onNavigate={setSection}>
+      {section === "pregled" ? (
+        <DashboardOverview stats={stats} loading={loading} onRefresh={() => void loadStats()} />
       ) : null}
-    </div>
+      {section === "odgovori" ? <DashboardAnswers stats={stats} /> : null}
+      {section === "analitika" ? <DashboardAnalytics stats={stats} /> : null}
+      {section === "vprasanja" ? <DashboardQuestions /> : null}
+      {section === "nastavitve" ? <DashboardSettings onLogout={() => void onLogout()} /> : null}
+    </DashboardChrome>
   );
 }
