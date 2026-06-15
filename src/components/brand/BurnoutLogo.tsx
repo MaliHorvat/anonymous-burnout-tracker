@@ -1,4 +1,4 @@
-import { Activity } from "lucide-react";
+import { BurnoutLogoMark } from "@/components/brand/BurnoutLogoMark";
 
 type Props = {
   subtitle?: string;
@@ -9,13 +9,19 @@ type Props = {
 export function BurnoutLogo({ subtitle, className = "", variant = "default" }: Props) {
   const onDark = variant === "onDark";
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`}>
       <span
-        className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ${
-          onDark ? "bg-white/15 text-white" : "bg-teal-700 text-white dark:bg-teal-600"
+        className={`flex shrink-0 items-center justify-center rounded-full shadow-md shadow-teal-900/15 ${
+          onDark ? "ring-2 ring-white/20" : ""
         }`}
       >
-        <Activity className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+        {onDark ? (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
+            <BurnoutLogoMark size={36} className="[&_circle]:fill-white/20" />
+          </span>
+        ) : (
+          <BurnoutLogoMark size={40} />
+        )}
       </span>
       <div>
         <p className={`text-base font-bold tracking-tight ${onDark ? "text-white" : "text-slate-900 dark:text-slate-50"}`}>

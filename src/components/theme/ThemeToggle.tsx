@@ -1,48 +1,25 @@
 "use client";
 
-import { useTheme, type Theme } from "@/components/theme/ThemeProvider";
-
-const OPTIONS: { id: Theme; label: string }[] = [
-  { id: "light", label: "Svetlo" },
-  { id: "dark", label: "Temno" },
-  { id: "system", label: "Sistem" },
-];
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
-    <div
-      className={`flex rounded-lg border p-0.5 ${
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isDark ? "Preklopi na svetlo temo" : "Preklopi na temno temo"}
+      title={isDark ? "Svetla tema" : "Temna tema"}
+      className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
         onDark
-          ? "border-white/25 bg-white/10"
-          : "border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-800"
+          ? "border-white/25 bg-white/10 text-white hover:bg-white/20"
+          : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-teal-300 hover:text-teal-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:text-teal-300"
       }`}
-      role="group"
-      aria-label="Izbira teme"
     >
-      {OPTIONS.map((opt) => {
-        const active = theme === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => setTheme(opt.id)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              active
-                ? onDark
-                  ? "bg-white text-teal-900 shadow-sm"
-                  : "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-50"
-                : onDark
-                  ? "text-teal-100 hover:text-white"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
-            }`}
-            aria-pressed={active}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
+      {isDark ? <Sun className="h-5 w-5" aria-hidden /> : <Moon className="h-5 w-5" aria-hidden />}
+    </button>
   );
 }
