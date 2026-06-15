@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Briefcase,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SCORE_QUESTIONS, rowAverage } from "@/lib/survey-questions";
+import { copyText } from "@/lib/copy-text";
 import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
 const SCORE_ICONS: Record<string, LucideIcon> = {
@@ -292,12 +294,25 @@ export function DashboardQuestions() {
 
 export function DashboardSettings({ organization }: { organization: OrganizationInfo | null }) {
   const surveyPath = organization ? `/s/${organization.slug}` : "";
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   async function copyLink() {
     if (!organization) return;
     const url = organization.survey_url || `${window.location.origin}${surveyPath}`;
-    await navigator.clipboard.writeText(url);
+    setCopyError("");
+    const ok = await copyText(url);
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    setCopyError("Kopiranje ni uspelo. Povezavo kopirajte ročno iz polja spodaj.");
   }
+
+  const fullUrl =
+    organization?.survey_url ||
+    (typeof window !== "undefined" ? `${window.location.origin}${surveyPath}` : surveyPath);
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -310,7 +325,17 @@ export function DashboardSettings({ organization }: { organization: Organization
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <h2 className="font-semibold text-slate-900 dark:text-slate-50">{organization.name}</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">URL: /s/{organization.slug}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block text-slate-600 dark:text-slate-400">Javna povezava za zaposlene</span>
+            <input
+              type="text"
+              readOnly
+              value={fullUrl}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              onFocus={(e) => e.target.select()}
+            />
+          </label>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <a
               href={surveyPath}
               target="_blank"
@@ -325,9 +350,10 @@ export function DashboardSettings({ organization }: { organization: Organization
               className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             >
               <Copy className="h-4 w-4" aria-hidden />
-              Kopiraj povezavo
+              {copied ? "Kopirano!" : "Kopiraj povezavo"}
             </button>
           </div>
+          {copyError ? <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">{copyError}</p> : null}
         </div>
       ) : null}
 
