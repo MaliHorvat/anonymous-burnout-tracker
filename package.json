@@ -8,7 +8,7 @@
     "build": "npm run prisma:generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:push": "prisma db push",
+    "db:push": "node scripts/prisma-env.cjs npx prisma db push",
     "postinstall": "npm run prisma:generate"
   },
   "dependencies": {
