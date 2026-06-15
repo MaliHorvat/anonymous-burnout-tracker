@@ -1,6 +1,6 @@
 "use client";
 
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -16,7 +16,8 @@ import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
 export function DashboardView() {
   const router = useRouter();
-  const { organization, isLoaded } = useOrganization();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { organization, isLoaded: orgLoaded } = useOrganization();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,15 +62,20 @@ export function DashboardView() {
   }, [router]);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!authLoaded) return;
+    if (!isSignedIn) {
+      router.replace("/sign-in");
+      return;
+    }
+    if (!orgLoaded) return;
     if (!organization) {
       setLoading(false);
       return;
     }
     void loadStats();
-  }, [isLoaded, organization, loadStats]);
+  }, [authLoaded, isSignedIn, orgLoaded, organization, loadStats, router]);
 
-  if (!isLoaded) {
+  if (!authLoaded || !orgLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-950">
         <p className="text-sm text-slate-600 dark:text-slate-400">Nalagam...</p>

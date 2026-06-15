@@ -11,6 +11,12 @@ export default function HomePage() {
           <BurnoutLogo />
           <div className="flex items-center gap-3">
             <Link
+              href="/dashboard"
+              className="text-sm font-medium text-slate-600 hover:text-teal-700 dark:text-slate-300 dark:hover:text-teal-400"
+            >
+              Nadzorna plošča
+            </Link>
+            <Link
               href="/sign-in"
               className="text-sm font-medium text-slate-600 hover:text-teal-700 dark:text-slate-300 dark:hover:text-teal-400"
             >

@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateOrganization, OrganizationSwitcher, useOrganization, useUser } from "@clerk/nextjs";
+import { CreateOrganization, OrganizationSwitcher, useAuth, useOrganization, useUser } from "@clerk/nextjs";
 import { Building2, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { slugify } from "@/lib/slug";
 
 export function SetupView() {
   const router = useRouter();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: userLoaded } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const [name, setName] = useState("");
@@ -25,6 +26,11 @@ export function SetupView() {
   useEffect(() => {
     if (!slugTouched && name) setSlug(slugify(name));
   }, [name, slugTouched]);
+
+  useEffect(() => {
+    if (!authLoaded) return;
+    if (!isSignedIn) router.replace("/sign-in");
+  }, [authLoaded, isSignedIn, router]);
 
   useEffect(() => {
     if (!userLoaded || !orgLoaded) return;
@@ -65,7 +71,7 @@ export function SetupView() {
     }
   }
 
-  if (!userLoaded || !orgLoaded || checking) {
+  if (!authLoaded || !userLoaded || !orgLoaded || checking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-950">
         <p className="text-sm text-slate-600 dark:text-slate-400">Nalagam...</p>
