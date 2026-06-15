@@ -1,6 +1,6 @@
 # Anonymous Burnout Tracker
 
-Anonimna anketa (3 vprašanja, 1–5) + admin nadzorna plošča.  
+Anonimna anketa (8 vprašanj + opombe) + večpodjetniška nadzorna plošča z Clerk.  
 **Domena:** `anketa.visionone.si` · **Baza:** MySQL na NEOSERV · **App:** Vercel
 
 ---
@@ -61,8 +61,9 @@ npm install
 npm run dev
 ```
 
-- Anketa: http://localhost:3000  
-- Admin: http://localhost:3000/dashboard  
+- Anketa: http://localhost:3000 (domov) · http://localhost:3000/s/vase-podjetje (anketa podjetja)
+- Admin: http://localhost:3000/dashboard (Clerk prijava)
+- Nastavitev: http://localhost:3000/setup
 
 ---
 
@@ -79,7 +80,11 @@ V **Vercel → Settings → Environment Variables**:
 | Spremenljivka | Vrednost |
 |---------------|----------|
 | `DATABASE_URL` | MySQL connection string iz NEOSERV |
-| `DASHBOARD_PASSWORD` | Geslo za `/dashboard` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Iz [Clerk Dashboard](https://dashboard.clerk.com) |
+| `CLERK_SECRET_KEY` | Iz Clerk Dashboard |
+| `NEXT_PUBLIC_APP_URL` | `https://anketa.visionone.si` |
+
+V Clerk omogoči **Organizations** (Settings → Organizations).
 
 **Deploy** → preveri `https://tvoj-projekt.vercel.app`
 
@@ -110,14 +115,15 @@ V **Vercel → Settings → Environment Variables**:
 
 ## 5. Preverjanje
 
-1. https://anketa.visionone.si — oddaj testno anketo  
-2. https://anketa.visionone.si/dashboard — prijava, preveri povprečja  
-3. phpMyAdmin — v tabeli `submissions` mora biti nova vrstica  
+1. https://anketa.visionone.si — registracija podjetja, nastavitev, delitev povezave `/s/vase-podjetje`
+2. https://anketa.visionone.si/dashboard — Clerk prijava, pregled odgovorov in opomb
+3. phpMyAdmin — tabele `organizations` in `submissions`
 
 ---
 
 ## Varnost
 
-- Anketa ne zbira imen, e-pošte ali IP-jev v bazi (samo 3 ocene + čas)
-- `/dashboard` je zaščiten z `DASHBOARD_PASSWORD`
+- Anketa ne zbira imen, e-pošte ali IP-jev zaposlenih (ocene + neobvezne opombe + čas)
+- Nadzorna plošča je zaščitena z **Clerk** (račun + organizacija)
+- Podatki so ločeni po podjetjih (`organization_id`)
 - `DATABASE_URL` samo na strežniku (Vercel env), nikoli v git

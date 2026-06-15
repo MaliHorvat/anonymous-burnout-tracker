@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
-import { isDashboardAuthenticated } from "@/lib/dashboard-auth";
 import { isDbConfigured, prisma } from "@/lib/db";
+import { requireDashboardOrganization } from "@/lib/org";
+import { averageScores, rowAverage } from "@/lib/survey-questions";
+import { mapSubmissionRow } from "@/lib/submission-mapper";
 import type { DashboardStats } from "@/lib/types";
 
-function average(nums: number[]): number {
-  if (nums.length === 0) return 0;
-  return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100;
-}
-
 export async function GET() {
-  if (!(await isDashboardAuthenticated())) {
-    return NextResponse.json({ ok: false, error: "Neavtorizirano." }, { status: 401 });
+  const orgResult = await requireDashboardOrganization();
+  if (!orgResult.ok) {
+    const status = orgResult.reason === "unauthenticated" ? 401 : 403;
+    const error =
+      orgResult.reason === "no_clerk_org"
+        ? "Izberite organizacijo v meniju zgoraj desno."
+        : orgResult.reason === "not_setup"
+          ? "Organizacija še ni nastavljena."
+          : "Neavtorizirano.";
+    return NextResponse.json({ ok: false, error }, { status });
   }
 
   if (!isDbConfigured() || !prisma) {
@@ -19,27 +24,40 @@ export async function GET() {
 
   try {
     const rows = await prisma.submission.findMany({
+      where: { organizationId: orgResult.org.id },
       orderBy: { createdAt: "desc" },
       take: 500,
     });
 
+    const mapped = rows.map(mapSubmissionRow);
+    const scoreRows = mapped.map(({ workload, feeling_valued, enough_resources, work_life_balance, team_collaboration, manager_support, job_satisfaction, recommend_employer }) => ({
+      workload,
+      feeling_valued,
+      enough_resources,
+      work_life_balance,
+      team_collaboration,
+      manager_support,
+      job_satisfaction,
+      recommend_employer,
+    }));
+
     const stats: DashboardStats = {
       count: rows.length,
-      averages: {
-        workload: average(rows.map((r) => r.workload)),
-        feeling_valued: average(rows.map((r) => r.feelingValued)),
-        enough_resources: average(rows.map((r) => r.enoughResources)),
-      },
-      recent: rows.slice(0, 20).map((r) => ({
-        id: r.id,
-        workload: r.workload,
-        feeling_valued: r.feelingValued,
-        enough_resources: r.enoughResources,
-        created_at: r.createdAt.toISOString(),
-      })),
+      notes_count: mapped.filter((r) => r.notes).length,
+      averages: averageScores(scoreRows),
+      recent: mapped.slice(0, 50),
+      notes: mapped
+        .filter((r) => r.notes)
+        .slice(0, 100)
+        .map((r) => ({
+          id: r.id,
+          created_at: r.created_at,
+          notes: r.notes!,
+          average: rowAverage(r),
+        })),
     };
 
-    return NextResponse.json({ ok: true, stats });
+    return NextResponse.json({ ok: true, stats, organization: orgResult.org });
   } catch (err) {
     console.error("[dashboard stats]", err);
     return NextResponse.json({ ok: false, error: "Branje podatkov ni uspelo." }, { status: 500 });

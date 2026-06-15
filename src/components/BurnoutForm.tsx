@@ -1,22 +1,16 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { MessageSquarePlus, ShieldCheck } from "lucide-react";
+import { emptyScoreValues, NOTES_FIELD, SCORE_QUESTIONS, type ScoreFieldKey } from "@/lib/survey-questions";
 
-const QUESTIONS = [
-  { key: "workload", label: "1. Kakšna je vaša delovna obremenitev?" },
-  { key: "feeling_valued", label: "2. Se počutite cenjeni na delovnem mestu?" },
-  { key: "enough_resources", label: "3. Imate dovolj virov za opravljanje dela?" },
-] as const;
+type Props = {
+  orgSlug: string;
+};
 
-type FieldKey = (typeof QUESTIONS)[number]["key"];
-
-export function BurnoutForm() {
-  const [values, setValues] = useState<Record<FieldKey, number | null>>({
-    workload: null,
-    feeling_valued: null,
-    enough_resources: null,
-  });
+export function BurnoutForm({ orgSlug }: Props) {
+  const [values, setValues] = useState(emptyScoreValues());
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -25,17 +19,24 @@ export function BurnoutForm() {
     e.preventDefault();
     setError("");
 
-    if (values.workload === null || values.feeling_valued === null || values.enough_resources === null) {
-      setError("Prosimo, ocenite vsa tri vprašanja (1–5).");
-      return;
+    for (const q of SCORE_QUESTIONS) {
+      if (values[q.key as ScoreFieldKey] === null) {
+        setError("Prosimo, ocenite vsa vprašanja (1–5).");
+        return;
+      }
     }
 
     setLoading(true);
     try {
+      const payload: Record<string, unknown> = { org_slug: orgSlug, notes: notes.trim() || null };
+      for (const q of SCORE_QUESTIONS) {
+        payload[q.key] = values[q.key as ScoreFieldKey];
+      }
+
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
@@ -66,7 +67,7 @@ export function BurnoutForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {QUESTIONS.map((q) => (
+      {SCORE_QUESTIONS.map((q) => (
         <fieldset
           key={q.key}
           className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
@@ -75,7 +76,8 @@ export function BurnoutForm() {
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">1 = zelo slabo · 5 = zelo dobro</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {[1, 2, 3, 4, 5].map((n) => {
-              const selected = values[q.key] === n;
+              const key = q.key as ScoreFieldKey;
+              const selected = values[key] === n;
               return (
                 <label
                   key={n}
@@ -91,7 +93,7 @@ export function BurnoutForm() {
                     value={n}
                     className="sr-only"
                     checked={selected}
-                    onChange={() => setValues((v) => ({ ...v, [q.key]: n }))}
+                    onChange={() => setValues((v) => ({ ...v, [key]: n }))}
                   />
                   {n}
                 </label>
@@ -100,6 +102,23 @@ export function BurnoutForm() {
           </div>
         </fieldset>
       ))}
+
+      <fieldset className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <legend className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <MessageSquarePlus className="h-4 w-4 text-teal-700 dark:text-teal-400" aria-hidden />
+          {NOTES_FIELD.label}
+        </legend>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value.slice(0, NOTES_FIELD.maxLength))}
+          rows={4}
+          placeholder={NOTES_FIELD.placeholder}
+          className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+        />
+        <p className="mt-1 text-right text-xs text-slate-500">
+          {notes.length}/{NOTES_FIELD.maxLength}
+        </p>
+      </fieldset>
 
       {error ? <p className="text-center text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 

@@ -7,13 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Submission {
-  id              String   @id @default(cuid())
-  workload        Int      @db.TinyInt
-  feelingValued   Int      @map("feeling_valued") @db.TinyInt
-  enoughResources Int      @map("enough_resources") @db.TinyInt
-  createdAt       DateTime @default(now()) @map("created_at")
+model Organization {
+  id              String       @id @default(cuid())
+  clerkOrgId      String       @unique @map("clerk_org_id")
+  name            String
+  slug            String       @unique
+  setupCompleted  Boolean      @default(true) @map("setup_completed")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  submissions     Submission[]
 
+  @@map("organizations")
+}
+
+model Submission {
+  id                 String       @id @default(cuid())
+  organizationId     String       @map("organization_id")
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workload           Int          @db.TinyInt
+  feelingValued      Int          @map("feeling_valued") @db.TinyInt
+  enoughResources    Int          @map("enough_resources") @db.TinyInt
+  workLifeBalance    Int          @map("work_life_balance") @db.TinyInt
+  teamCollaboration  Int          @map("team_collaboration") @db.TinyInt
+  managerSupport     Int          @map("manager_support") @db.TinyInt
+  jobSatisfaction    Int          @map("job_satisfaction") @db.TinyInt
+  recommendEmployer  Int          @map("recommend_employer") @db.TinyInt
+  notes              String?      @db.Text
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
   @@index([createdAt])
   @@map("submissions")
 }

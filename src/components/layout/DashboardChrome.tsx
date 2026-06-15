@@ -1,13 +1,14 @@
 "use client";
 
+import { OrganizationSwitcher, UserButton, useOrganization } from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
-  ChevronDown,
   ClipboardList,
   LayoutDashboard,
   Menu,
   MessageSquare,
+  MessageSquarePlus,
   Settings,
   Shield,
 } from "lucide-react";
@@ -15,11 +16,18 @@ import Link from "next/link";
 import { BurnoutLogo } from "@/components/brand/BurnoutLogo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
-export type DashboardSection = "pregled" | "odgovori" | "analitika" | "vprasanja" | "nastavitve";
+export type DashboardSection =
+  | "pregled"
+  | "odgovori"
+  | "opombe"
+  | "analitika"
+  | "vprasanja"
+  | "nastavitve";
 
 const NAV: { id: DashboardSection; label: string; icon: LucideIcon }[] = [
   { id: "pregled", label: "Pregled", icon: LayoutDashboard },
   { id: "odgovori", label: "Odgovori", icon: MessageSquare },
+  { id: "opombe", label: "Opombe", icon: MessageSquarePlus },
   { id: "analitika", label: "Analitika", icon: BarChart3 },
   { id: "vprasanja", label: "Vprašanja", icon: ClipboardList },
   { id: "nastavitve", label: "Nastavitve", icon: Settings },
@@ -28,10 +36,13 @@ const NAV: { id: DashboardSection; label: string; icon: LucideIcon }[] = [
 type Props = {
   active: DashboardSection;
   onNavigate: (section: DashboardSection) => void;
+  orgName?: string;
   children: React.ReactNode;
 };
 
-export function DashboardChrome({ active, onNavigate, children }: Props) {
+export function DashboardChrome({ active, onNavigate, orgName, children }: Props) {
+  const { organization } = useOrganization();
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-100 dark:bg-slate-950">
       <header className="flex items-center justify-between gap-3 bg-teal-800 px-4 py-3 text-white dark:bg-teal-900">
@@ -39,21 +50,30 @@ export function DashboardChrome({ active, onNavigate, children }: Props) {
           <button type="button" className="rounded-lg p-1.5 hover:bg-white/10 lg:hidden" aria-label="Meni">
             <Menu className="h-5 w-5" />
           </button>
-          <BurnoutLogo subtitle="Admin" variant="onDark" />
+          <BurnoutLogo subtitle={orgName || organization?.name || "Admin"} variant="onDark" />
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/" className="hidden text-sm text-teal-100 hover:text-white sm:inline">
-            ← Anketa
+            ← Domov
           </Link>
           <ThemeToggle onDark />
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/15"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs font-bold">A</span>
-            <span className="hidden sm:inline">Admin</span>
-            <ChevronDown className="h-4 w-4 opacity-80" aria-hidden />
-          </button>
+          <OrganizationSwitcher
+            hidePersonal
+            afterSelectOrganizationUrl="/dashboard"
+            appearance={{
+              elements: {
+                organizationSwitcherTrigger:
+                  "rounded-lg bg-white/10 px-2 py-1.5 text-white hover:bg-white/15 text-sm",
+              },
+            }}
+          />
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "h-8 w-8",
+              },
+            }}
+          />
         </div>
       </header>
 

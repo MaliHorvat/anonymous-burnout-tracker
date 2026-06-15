@@ -1,21 +1,33 @@
 "use client";
 
-import { Briefcase, ChevronRight, Heart, RefreshCw, Users } from "lucide-react";
-import type { DashboardStats } from "@/lib/types";
+import {
+  Briefcase,
+  ChevronRight,
+  Copy,
+  Heart,
+  RefreshCw,
+  Smile,
+  Star,
+  ThumbsUp,
+  Users,
+  Workflow,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { SCORE_QUESTIONS, rowAverage } from "@/lib/survey-questions";
+import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
-function rowAverage(row: { workload: number; feeling_valued: number; enough_resources: number }) {
-  return (row.workload + row.feeling_valued + row.enough_resources) / 3;
-}
+const SCORE_ICONS: Record<string, LucideIcon> = {
+  workload: Briefcase,
+  feeling_valued: Heart,
+  enough_resources: Users,
+  work_life_balance: Workflow,
+  team_collaboration: Users,
+  manager_support: ThumbsUp,
+  job_satisfaction: Smile,
+  recommend_employer: Star,
+};
 
-function ScoreCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  icon: typeof Briefcase;
-}) {
+function ScoreCard({ label, value, icon: Icon }: { label: string; value: number; icon: LucideIcon }) {
   const pct = Math.min(100, (value / 5) * 100);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -36,7 +48,7 @@ function ScoreCard({
   );
 }
 
-function ResponsesTable({ rows, title }: { rows: DashboardStats["recent"]; title: string }) {
+function ResponsesTable({ rows, title, compact }: { rows: DashboardStats["recent"]; title: string; compact?: boolean }) {
   if (rows.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
@@ -45,39 +57,47 @@ function ResponsesTable({ rows, title }: { rows: DashboardStats["recent"]; title
     );
   }
 
+  const visibleQuestions = compact ? SCORE_QUESTIONS.slice(0, 4) : SCORE_QUESTIONS;
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
         <h3 className="font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200">
             <tr>
-              <th className="px-4 py-3 font-semibold">Čas oddaje</th>
-              <th className="px-4 py-3 font-semibold">Delovna obremenitev</th>
-              <th className="px-4 py-3 font-semibold">Počutje cenjenosti</th>
-              <th className="px-4 py-3 font-semibold">Dovolj virov</th>
-              <th className="px-4 py-3 font-semibold">Skupna ocena</th>
-              <th className="w-10 px-2 py-3" aria-hidden />
+              <th className="px-4 py-3 font-semibold">Čas</th>
+              {visibleQuestions.map((q) => (
+                <th key={q.key} className="px-3 py-3 font-semibold">
+                  {q.title}
+                </th>
+              ))}
+              <th className="px-4 py-3 font-semibold">Skupaj</th>
+              {!compact ? <th className="px-4 py-3 font-semibold">Opombe</th> : null}
+              <th className="w-8 px-2 py-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                <td className="whitespace-nowrap px-4 py-3 text-slate-700 dark:text-slate-300">
                   {new Date(row.created_at).toLocaleString("sl-SI")}
                 </td>
-                <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">{row.workload}</td>
-                <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                  {row.feeling_valued}
-                </td>
-                <td className="px-4 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
-                  {row.enough_resources}
-                </td>
+                {visibleQuestions.map((q) => (
+                  <td key={q.key} className="px-3 py-3 text-center font-semibold text-slate-900 dark:text-slate-50">
+                    {row[q.key]}
+                  </td>
+                ))}
                 <td className="px-4 py-3 text-center font-semibold text-teal-800 dark:text-teal-400">
                   {rowAverage(row).toFixed(2)}
                 </td>
+                {!compact ? (
+                  <td className="max-w-[200px] truncate px-4 py-3 text-slate-600 dark:text-slate-400">
+                    {row.notes || "—"}
+                  </td>
+                ) : null}
                 <td className="px-2 py-3 text-slate-400">
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </td>
@@ -85,12 +105,6 @@ function ResponsesTable({ rows, title }: { rows: DashboardStats["recent"]; title
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-        <span>
-          Prikazujem 1–{rows.length} od {rows.length} odgovorov
-        </span>
-        <span className="rounded border border-slate-200 px-2 py-0.5 dark:border-slate-600">1</span>
       </div>
     </div>
   );
@@ -105,12 +119,12 @@ export function DashboardOverview({
   loading: boolean;
   onRefresh: () => void;
 }) {
-  const cards = stats
-    ? [
-        { label: "Delovna obremenitev", value: stats.averages.workload, icon: Briefcase },
-        { label: "Počutje cenjenosti", value: stats.averages.feeling_valued, icon: Heart },
-        { label: "Dovolj virov", value: stats.averages.enough_resources, icon: Users },
-      ]
+  const topCards = stats
+    ? SCORE_QUESTIONS.slice(0, 4).map((q) => ({
+        label: q.title,
+        value: stats.averages[q.key],
+        icon: SCORE_ICONS[q.key] || Briefcase,
+      }))
     : [];
 
   return (
@@ -120,6 +134,12 @@ export function DashboardOverview({
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Povprečne ocene</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Skupaj oddaj: <strong className="text-slate-900 dark:text-slate-100">{stats?.count ?? "—"}</strong>
+            {stats ? (
+              <>
+                {" "}
+                · Opombe: <strong className="text-slate-900 dark:text-slate-100">{stats.notes_count}</strong>
+              </>
+            ) : null}
             {loading ? " · nalagam..." : null}
           </p>
         </div>
@@ -133,15 +153,13 @@ export function DashboardOverview({
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {cards.map((c) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {topCards.map((c) => (
           <ScoreCard key={c.label} {...c} />
         ))}
       </div>
 
-      {stats ? (
-        <ResponsesTable rows={stats.recent} title="Zadnji anonimni odgovori" />
-      ) : null}
+      {stats ? <ResponsesTable rows={stats.recent.slice(0, 10)} title="Zadnji anonimni odgovori" compact /> : null}
     </div>
   );
 }
@@ -151,9 +169,50 @@ export function DashboardAnswers({ stats }: { stats: DashboardStats | null }) {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Vsi odgovori</h1>
       <p className="text-sm text-slate-600 dark:text-slate-400">
-        Seznam vseh anonimnih oddaj. Posameznih identitet ni mogoče določiti.
+        Seznam vseh anonimnih oddaj za vašo organizacijo. Posameznih identitet ni mogoče določiti.
       </p>
       {stats ? <ResponsesTable rows={stats.recent} title="Anonimni odgovori" /> : null}
+    </div>
+  );
+}
+
+export function DashboardNotes({ stats }: { stats: DashboardStats | null }) {
+  if (!stats) return null;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Opombe zaposlenih</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Neobvezni komentarji iz ankete — anonimno, brez povezave z identiteto.
+        </p>
+      </div>
+
+      {stats.notes.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+          Še ni oddanih opomb.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {stats.notes.map((note) => (
+            <article
+              key={note.id}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <time dateTime={note.created_at}>{new Date(note.created_at).toLocaleString("sl-SI")}</time>
+                <span>
+                  Skupna ocena oddaje:{" "}
+                  <strong className="text-teal-800 dark:text-teal-400">{note.average.toFixed(2)}</strong>
+                </span>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+                {note.notes}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -161,14 +220,14 @@ export function DashboardAnswers({ stats }: { stats: DashboardStats | null }) {
 export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) {
   if (!stats) return null;
 
-  const items = [
-    { label: "Delovna obremenitev", value: stats.averages.workload, color: "bg-teal-700" },
-    { label: "Počutje cenjenosti", value: stats.averages.feeling_valued, color: "bg-teal-600" },
-    { label: "Dovolj virov", value: stats.averages.enough_resources, color: "bg-teal-500" },
-  ];
+  const items = SCORE_QUESTIONS.map((q, i) => ({
+    label: q.title,
+    value: stats.averages[q.key],
+    color: ["bg-teal-700", "bg-teal-600", "bg-teal-500", "bg-teal-600", "bg-teal-700", "bg-teal-500", "bg-teal-600", "bg-teal-700"][i],
+  }));
 
   const overall =
-    (stats.averages.workload + stats.averages.feeling_valued + stats.averages.enough_resources) / 3;
+    SCORE_QUESTIONS.reduce((sum, q) => sum + stats.averages[q.key], 0) / SCORE_QUESTIONS.length;
 
   return (
     <div className="space-y-6">
@@ -182,7 +241,7 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Skupno povprečje</p>
         <p className="mt-1 text-4xl font-bold text-teal-800 dark:text-teal-400">{overall.toFixed(2)}</p>
-        <p className="text-xs text-slate-500">iz vseh treh vprašanj (lestvica 1–5)</p>
+        <p className="text-xs text-slate-500">iz vseh osmih vprašanj (lestvica 1–5)</p>
       </div>
 
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -194,10 +253,7 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
               <span className="font-semibold text-teal-800 dark:text-teal-400">{item.value.toFixed(2)}</span>
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                className={`h-full rounded-full ${item.color}`}
-                style={{ width: `${(item.value / 5) * 100}%` }}
-              />
+              <div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / 5) * 100}%` }} />
             </div>
           </div>
         ))}
@@ -206,41 +262,24 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
   );
 }
 
-const QUESTION_INFO = [
-  {
-    n: 1,
-    title: "Delovna obremenitev",
-    body: "Ocenite, kako obremenjeni ste z delom v zadnjem obdobju.",
-  },
-  {
-    n: 2,
-    title: "Počutje cenjenosti",
-    body: "Ocenite, ali se na delovnem mestu počutite cenjeni in upoštevani.",
-  },
-  {
-    n: 3,
-    title: "Dovolj virov",
-    body: "Ocenite, ali imate dovolj časa, opreme in podpore za kakovostno delo.",
-  },
-];
-
 export function DashboardQuestions() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Vprašanja v anketi</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Zaposleni ocenjujejo vsako trditev na lestvici od 1 (zelo slabo) do 5 (zelo dobro).
+          Zaposleni ocenjujejo vsako trditev na lestvici od 1 (zelo slabo) do 5 (zelo dobro). Na koncu lahko dodajo
+          neobvezne opombe.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
-        {QUESTION_INFO.map((q) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {SCORE_QUESTIONS.map((q, i) => (
           <div
-            key={q.n}
+            key={q.key}
             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
           >
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-teal-800 dark:bg-teal-950 dark:text-teal-300">
-              {q.n}
+              {i + 1}
             </span>
             <h2 className="mt-3 font-semibold text-slate-900 dark:text-slate-50">{q.title}</h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{q.body}</p>
@@ -251,28 +290,56 @@ export function DashboardQuestions() {
   );
 }
 
-export function DashboardSettings({ onLogout }: { onLogout: () => void }) {
+export function DashboardSettings({ organization }: { organization: OrganizationInfo | null }) {
+  const surveyPath = organization ? `/s/${organization.slug}` : "";
+
+  async function copyLink() {
+    if (!organization) return;
+    const url = organization.survey_url || `${window.location.origin}${surveyPath}`;
+    await navigator.clipboard.writeText(url);
+  }
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Nastavitve</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Upravljanje dostopa in zasebnosti ankete.</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Organizacija in povezava do ankete.</p>
       </div>
+
+      {organization ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <h2 className="font-semibold text-slate-900 dark:text-slate-50">{organization.name}</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">URL: /s/{organization.slug}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={surveyPath}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 dark:bg-teal-600"
+            >
+              Odpri anketo
+            </a>
+            <button
+              type="button"
+              onClick={() => void copyLink()}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <Copy className="h-4 w-4" aria-hidden />
+              Kopiraj povezavo
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h2 className="font-semibold text-slate-900 dark:text-slate-50">Zasebnost</h2>
         <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-          <li>· Ne shranjujemo imen, e-pošte ali IP naslovov.</li>
-          <li>· V bazi so le tri ocene in čas oddaje.</li>
-          <li>· Prikazani so samo agregirani podatki.</li>
+          <li>· Ne shranjujemo imen, e-pošte ali IP naslovov zaposlenih.</li>
+          <li>· V bazi so le ocene, neobvezne opombe in čas oddaje.</li>
+          <li>· Podatki so ločeni po organizacijah (podjetjih).</li>
+          <li>· Dostop do nadzorne plošče prek Clerk računa in organizacije.</li>
         </ul>
       </div>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-      >
-        Odjava
-      </button>
     </div>
   );
 }

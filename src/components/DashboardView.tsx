@@ -1,111 +1,110 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useOrganization } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   DashboardAnalytics,
   DashboardAnswers,
+  DashboardNotes,
   DashboardOverview,
   DashboardQuestions,
   DashboardSettings,
 } from "@/components/dashboard/DashboardPanels";
 import { DashboardChrome, type DashboardSection } from "@/components/layout/DashboardChrome";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
-type Props = {
-  initialAuthed: boolean;
-};
-
-export function DashboardView({ initialAuthed }: Props) {
-  const [authed, setAuthed] = useState(initialAuthed);
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+export function DashboardView() {
+  const router = useRouter();
+  const { organization, isLoaded } = useOrganization();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [section, setSection] = useState<DashboardSection>("pregled");
 
   const loadStats = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/dashboard/stats");
-      const data = (await res.json()) as { ok?: boolean; stats?: DashboardStats; error?: string };
-      if (!res.ok || !data.ok || !data.stats) {
-        if (res.status === 401) setAuthed(false);
+      const data = (await res.json()) as {
+        ok?: boolean;
+        stats?: DashboardStats;
+        organization?: { id: string; name: string; slug: string };
+        error?: string;
+      };
+
+      if (res.status === 403) {
+        router.replace("/setup");
         return;
       }
-      setStats(data.stats);
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Nalaganje ni uspelo.");
+        return;
+      }
+
+      if (data.stats) setStats(data.stats);
+      if (data.organization) {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        setOrgInfo({
+          id: data.organization.id,
+          name: data.organization.name,
+          slug: data.organization.slug,
+          setup_completed: true,
+          survey_url: `${origin}/s/${data.organization.slug}`,
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    if (authed) void loadStats();
-  }, [authed, loadStats]);
-
-  async function onLogin(e: FormEvent) {
-    e.preventDefault();
-    setLoginError("");
-    const res = await fetch("/api/dashboard/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    const data = (await res.json()) as { ok?: boolean; error?: string };
-    if (!res.ok || !data.ok) {
-      setLoginError(data.error || "Prijava ni uspela.");
+    if (!isLoaded) return;
+    if (!organization) {
+      setLoading(false);
       return;
     }
-    setAuthed(true);
-    setPassword("");
+    void loadStats();
+  }, [isLoaded, organization, loadStats]);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-950">
+        <p className="text-sm text-slate-600 dark:text-slate-400">Nalagam...</p>
+      </div>
+    );
   }
 
-  async function onLogout() {
-    await fetch("/api/dashboard/login", { method: "DELETE" });
-    setAuthed(false);
-    setStats(null);
-    setSection("pregled");
-  }
-
-  if (!authed) {
+  if (!organization) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4 dark:bg-slate-950">
-        <form
-          onSubmit={onLogin}
-          className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-        >
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Prijava v nadzorno ploščo</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Burnout Tracker — Admin</p>
-          <label className="block text-sm">
-            <span className="mb-1 block text-slate-600 dark:text-slate-300">Geslo</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              required
-            />
-          </label>
-          {loginError ? <p className="text-sm text-red-600 dark:text-red-400">{loginError}</p> : null}
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 dark:bg-teal-600"
-          >
-            Prijava
-          </button>
-        </form>
+        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Izberite organizacijo</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Za dostop do nadzorne plošče izberite ali ustvarite podjetje v meniju zgoraj desno.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <DashboardChrome active={section} onNavigate={setSection}>
+    <DashboardChrome active={section} onNavigate={setSection} orgName={orgInfo?.name || organization.name}>
+      {error ? (
+        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
       {section === "pregled" ? (
         <DashboardOverview stats={stats} loading={loading} onRefresh={() => void loadStats()} />
       ) : null}
       {section === "odgovori" ? <DashboardAnswers stats={stats} /> : null}
+      {section === "opombe" ? <DashboardNotes stats={stats} /> : null}
       {section === "analitika" ? <DashboardAnalytics stats={stats} /> : null}
       {section === "vprasanja" ? <DashboardQuestions /> : null}
-      {section === "nastavitve" ? <DashboardSettings onLogout={() => void onLogout()} /> : null}
+      {section === "nastavitve" ? <DashboardSettings organization={orgInfo} /> : null}
     </DashboardChrome>
   );
 }
