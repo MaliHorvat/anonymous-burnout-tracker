@@ -59,6 +59,7 @@ export type QuestionInput = {
   body: string;
   label: string;
   active?: boolean;
+  sort_order?: number;
 };
 
 export type SurveySettingsInput = {

@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { rowAverageFromAnswers } from "@/lib/survey-service";
 import { copyText } from "@/lib/copy-text";
+import { publicSurveyUrl } from "@/lib/app-url";
 import type { DashboardStats, OrganizationInfo, SurveyQuestionRow } from "@/lib/types";
 
 const SCORE_ICONS: Record<string, LucideIcon> = {
@@ -131,12 +132,62 @@ function ResponsesTable({
   );
 }
 
+function SurveyLinkCard({ organization }: { organization: OrganizationInfo }) {
+  const [copied, setCopied] = useState(false);
+  const url = organization.survey_url || publicSurveyUrl(organization.slug);
+  const path = `/s/${organization.slug}`;
+
+  async function copyLink() {
+    const ok = await copyText(url);
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-teal-200 bg-teal-50/50 p-5 dark:border-teal-900 dark:bg-teal-950/30">
+      <h2 className="font-semibold text-slate-900 dark:text-slate-50">Povezava do ankete za zaposlene</h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Delite to povezavo z ekipo — anonimna oddaja brez prijave.
+      </p>
+      <input
+        type="text"
+        readOnly
+        value={url}
+        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800"
+        onFocus={(e) => e.target.select()}
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a
+          href={path}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+        >
+          Odpri anketo
+        </a>
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold"
+        >
+          <Copy className="h-4 w-4" aria-hidden />
+          {copied ? "Kopirano!" : "Kopiraj"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardOverview({
   stats,
+  organization,
   loading,
   onRefresh,
 }: {
   stats: DashboardStats | null;
+  organization: OrganizationInfo | null;
   loading: boolean;
   onRefresh: () => void;
 }) {
@@ -175,6 +226,8 @@ export function DashboardOverview({
           Osveži
         </button>
       </div>
+
+      {organization ? <SurveyLinkCard organization={organization} /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {topCards.map((c) => (
@@ -298,26 +351,25 @@ export function DashboardAnalytics({ stats }: { stats: DashboardStats | null }) 
 export { DashboardQuestionsEditor as DashboardQuestions } from "@/components/dashboard/DashboardQuestionsEditor";
 
 export function DashboardSettings({ organization }: { organization: OrganizationInfo | null }) {
-  const surveyPath = organization ? `/s/${organization.slug}` : "";
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
 
+  const surveyPath = organization ? `/s/${organization.slug}` : "";
+  const fullUrl = organization
+    ? organization.survey_url || publicSurveyUrl(organization.slug)
+    : "";
+
   async function copyLink() {
-    if (!organization) return;
-    const url = organization.survey_url || `${window.location.origin}${surveyPath}`;
+    if (!organization || !fullUrl) return;
     setCopyError("");
-    const ok = await copyText(url);
+    const ok = await copyText(fullUrl);
     if (ok) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
       return;
     }
-    setCopyError("Kopiranje ni uspelo. Povezavo kopirajte ročno iz polja spodaj.");
+    setCopyError("Kopiranje ni uspelo. Povezavo izberite ročno iz polja.");
   }
-
-  const fullUrl =
-    organization?.survey_url ||
-    (typeof window !== "undefined" ? `${window.location.origin}${surveyPath}` : surveyPath);
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -329,14 +381,14 @@ export function DashboardSettings({ organization }: { organization: Organization
       {organization ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <h2 className="font-semibold text-slate-900 dark:text-slate-50">{organization.name}</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">URL: /s/{organization.slug}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">URL pot: /s/{organization.slug}</p>
           <label className="mt-3 block text-sm">
-            <span className="mb-1 block text-slate-600 dark:text-slate-400">Javna povezava za zaposlene</span>
+            <span className="mb-1 block font-medium text-slate-700 dark:text-slate-300">Javna povezava za zaposlene</span>
             <input
               type="text"
               readOnly
               value={fullUrl}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               onFocus={(e) => e.target.select()}
             />
           </label>
@@ -360,7 +412,15 @@ export function DashboardSettings({ organization }: { organization: Organization
           </div>
           {copyError ? <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">{copyError}</p> : null}
         </div>
-      ) : null}
+      ) : (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          Podatki organizacije se še nalagajo. Če se povezava ne prikaže, dokončajte nastavitev na{" "}
+          <a href="/setup" className="font-semibold underline">
+            /setup
+          </a>
+          .
+        </p>
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h2 className="font-semibold text-slate-900 dark:text-slate-50">Zasebnost</h2>

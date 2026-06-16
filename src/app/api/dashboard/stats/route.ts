@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured, prisma } from "@/lib/db";
-import { requireDashboardOrganization } from "@/lib/org";
+import { requireDashboardOrganization, surveyPublicUrl } from "@/lib/org";
 import {
   averageForQuestions,
   getAllQuestions,
@@ -65,7 +65,14 @@ export async function GET() {
         })),
     };
 
-    return NextResponse.json({ ok: true, stats, organization: orgResult.org });
+    return NextResponse.json({
+      ok: true,
+      stats,
+      organization: {
+        ...orgResult.org,
+        survey_url: surveyPublicUrl(orgResult.org.slug, process.env.NEXT_PUBLIC_APP_URL),
+      },
+    });
   } catch (err) {
     console.error("[dashboard stats]", err);
     return NextResponse.json({ ok: false, error: "Branje podatkov ni uspelo." }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured, prisma } from "@/lib/db";
 import { requireDashboardOrganization } from "@/lib/org";
+import { surveyPublicUrl } from "@/lib/org";
 import {
   getAllQuestions,
   mapQuestionRow,
@@ -155,5 +156,39 @@ export async function PUT(request: Request) {
   } catch (err) {
     console.error("[dashboard questions PUT]", err);
     return NextResponse.json({ ok: false, error: "Shranjevanje ni uspelo." }, { status: 500 });
+  }
+}
+
+/** Obnovi 8 privzetih vprašanj (ponastavitev predloge). */
+export async function POST() {
+  const orgResult = await requireDashboardOrganization();
+  if (!orgResult.ok) {
+    const status = orgResult.reason === "unauthenticated" ? 401 : 403;
+    return NextResponse.json({ ok: false, error: "Neavtorizirano." }, { status });
+  }
+
+  if (!isDbConfigured() || !prisma) {
+    return NextResponse.json({ ok: false, error: "Baza ni nastavljena." }, { status: 503 });
+  }
+
+  try {
+    await seedDefaultQuestions(orgResult.org.id, true);
+    const org = await prisma.organization.findUniqueOrThrow({ where: { id: orgResult.org.id } });
+    const questions = await getAllQuestions(orgResult.org.id);
+
+    return NextResponse.json({
+      ok: true,
+      settings: {
+        title: org.surveyTitle,
+        subtitle: org.surveySubtitle,
+        notes_enabled: org.notesEnabled,
+        notes_label: org.notesLabel,
+        notes_placeholder: org.notesPlaceholder,
+        questions: questions.map(mapQuestionRow),
+      },
+    });
+  } catch (err) {
+    console.error("[dashboard questions POST seed]", err);
+    return NextResponse.json({ ok: false, error: "Nalaganje privzetih vprašanj ni uspelo." }, { status: 500 });
   }
 }

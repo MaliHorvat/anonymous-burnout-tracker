@@ -31,6 +31,42 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
   const [notesLabel, setNotesLabel] = useState("");
   const [notesPlaceholder, setNotesPlaceholder] = useState("");
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
+  const [seeding, setSeeding] = useState(false);
+
+  async function applySettings(settings: SurveySettingsInput) {
+    setTitle(settings.title);
+    setSubtitle(settings.subtitle);
+    setNotesEnabled(settings.notes_enabled);
+    setNotesLabel(settings.notes_label);
+    setNotesPlaceholder(settings.notes_placeholder);
+    setQuestions(
+      settings.questions.map((q) => ({
+        id: q.id,
+        key: q.key,
+        title: q.title,
+        body: q.body,
+        label: q.label,
+        active: q.active ?? true,
+      })),
+    );
+  }
+
+  async function loadDefaults(force = false) {
+    setSeeding(true);
+    setError("");
+    try {
+      const res = await fetch("/api/dashboard/questions", { method: force ? "POST" : "GET" });
+      const data = (await res.json()) as { ok?: boolean; settings?: SurveySettingsInput; error?: string };
+      if (!res.ok || !data.ok || !data.settings) {
+        setError(data.error || "Nalaganje privzetih vprašanj ni uspelo.");
+        return;
+      }
+      await applySettings(data.settings);
+      if (force) setSuccess("Privzeta vprašanja so naložena.");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   useEffect(() => {
     void (async () => {
@@ -46,25 +82,16 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
           setError(data.error || "Nalaganje ni uspelo.");
           return;
         }
-        setTitle(data.settings.title);
-        setSubtitle(data.settings.subtitle);
-        setNotesEnabled(data.settings.notes_enabled);
-        setNotesLabel(data.settings.notes_label);
-        setNotesPlaceholder(data.settings.notes_placeholder);
-        setQuestions(
-          data.settings.questions.map((q) => ({
-            id: q.id,
-            key: q.key,
-            title: q.title,
-            body: q.body,
-            label: q.label,
-            active: q.active ?? true,
-          })),
-        );
+        await applySettings(data.settings);
+        const active = data.settings.questions.filter((q) => q.active !== false);
+        if (active.length === 0) {
+          await loadDefaults(true);
+        }
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function moveQuestion(index: number, direction: -1 | 1) {
@@ -212,15 +239,32 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold text-slate-900 dark:text-slate-50">Vprašanja (1–5)</h2>
-          <button
-            type="button"
-            onClick={() => setQuestions((prev) => [...prev, emptyQuestion()])}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            Dodaj vprašanje
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void loadDefaults(true)}
+              disabled={seeding}
+              className="rounded-xl border border-teal-300 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-900 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-200"
+            >
+              {seeding ? "Nalagam..." : "Obnovi privzeta vprašanja"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuestions((prev) => [...prev, emptyQuestion()])}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Dodaj vprašanje
+            </button>
+          </div>
         </div>
+
+        {visibleQuestions.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-600 dark:bg-slate-800/50">
+            Ni aktivnih vprašanj. Kliknite <strong>Obnovi privzeta vprašanja</strong> za 8 pripravljenih vprašanj o
+            zadovoljstvu in izgorelosti.
+          </p>
+        ) : null}
 
         {visibleQuestions.map((q, index) => (
           <div

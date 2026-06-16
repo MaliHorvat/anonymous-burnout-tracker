@@ -105,10 +105,17 @@ export function mapSurveyConfig(org: Organization): SurveyConfig {
   };
 }
 
-export async function seedDefaultQuestions(organizationId: string) {
+export async function seedDefaultQuestions(organizationId: string, force = false) {
   if (!prisma) return;
-  const existing = await prisma.surveyQuestion.count({ where: { organizationId } });
-  if (existing > 0) return;
+
+  const activeCount = await prisma.surveyQuestion.count({
+    where: { organizationId, active: true },
+  });
+  if (!force && activeCount > 0) return;
+
+  if (force || activeCount === 0) {
+    await prisma.surveyQuestion.deleteMany({ where: { organizationId } });
+  }
 
   await prisma.surveyQuestion.createMany({
     data: DEFAULT_QUESTION_TEMPLATES.map((q, i) => ({

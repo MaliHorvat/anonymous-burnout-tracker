@@ -12,6 +12,7 @@ import {
   DashboardSettings,
 } from "@/components/dashboard/DashboardPanels";
 import { DashboardChrome, type DashboardSection } from "@/components/layout/DashboardChrome";
+import { publicSurveyUrl } from "@/lib/app-url";
 import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
 export function DashboardView() {
@@ -24,6 +25,31 @@ export function DashboardView() {
   const [error, setError] = useState("");
   const [section, setSection] = useState<DashboardSection>("pregled");
 
+  const loadOrganization = useCallback(async () => {
+    const res = await fetch("/api/organization/setup");
+    const data = (await res.json()) as {
+      ok?: boolean;
+      organization?: { id: string; name: string; slug: string; survey_url?: string };
+      needs_setup?: boolean;
+    };
+    if (data.needs_setup) {
+      router.replace("/setup");
+      return false;
+    }
+    if (data.organization) {
+      setOrgInfo({
+        id: data.organization.id,
+        name: data.organization.name,
+        slug: data.organization.slug,
+        setup_completed: true,
+        survey_url:
+          data.organization.survey_url || publicSurveyUrl(data.organization.slug, window.location.origin),
+      });
+      return true;
+    }
+    return false;
+  }, [router]);
+
   const loadStats = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -32,7 +58,7 @@ export function DashboardView() {
       const data = (await res.json()) as {
         ok?: boolean;
         stats?: DashboardStats;
-        organization?: { id: string; name: string; slug: string };
+        organization?: { id: string; name: string; slug: string; survey_url?: string };
         error?: string;
       };
 
@@ -47,13 +73,13 @@ export function DashboardView() {
 
       if (data.stats) setStats(data.stats);
       if (data.organization) {
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
         setOrgInfo({
           id: data.organization.id,
           name: data.organization.name,
           slug: data.organization.slug,
           setup_completed: true,
-          survey_url: `${origin}/s/${data.organization.slug}`,
+          survey_url:
+            data.organization.survey_url || publicSurveyUrl(data.organization.slug, window.location.origin),
         });
       }
     } finally {
@@ -72,8 +98,12 @@ export function DashboardView() {
       setLoading(false);
       return;
     }
-    void loadStats();
-  }, [authLoaded, isSignedIn, orgLoaded, organization, loadStats, router]);
+    void (async () => {
+      const ok = await loadOrganization();
+      if (ok) await loadStats();
+      else setLoading(false);
+    })();
+  }, [authLoaded, isSignedIn, orgLoaded, organization, loadOrganization, loadStats, router]);
 
   if (!authLoaded || !orgLoaded) {
     return (
@@ -104,7 +134,12 @@ export function DashboardView() {
         </p>
       ) : null}
       {section === "pregled" ? (
-        <DashboardOverview stats={stats} loading={loading} onRefresh={() => void loadStats()} />
+        <DashboardOverview
+          stats={stats}
+          organization={orgInfo}
+          loading={loading}
+          onRefresh={() => void loadStats()}
+        />
       ) : null}
       {section === "odgovori" ? <DashboardAnswers stats={stats} /> : null}
       {section === "opombe" ? <DashboardNotes stats={stats} /> : null}
