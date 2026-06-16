@@ -99,7 +99,26 @@ V Dashboard -> Urejanje ankete klikni:
 Sistem bo znova nalozil 8 privzetih aktivnih vprasanj.
 
 
-10) CE REGISTRACIJA OSTAJA NA ISTI STRANI
+10) CE SETUP VRNE "OMREZNO NAPAKO" ALI NE SHRANI
+------------------------------------------------
+Vzrok je obicajno API, ki ne vrne JSON (404/500 HTML).
+
+Preveri:
+1. Odpri: https://anketa.visionone.si/api/health
+   - mora vrniti: {"ok":true,"db":true}
+2. Ce je db:false -> DATABASE_URL na Vercelu ni pravilen ali baza ni dosegljiva
+3. Ce je 404 na /api/organization/setup -> redeploy zadnje verzije
+4. V Clerk Dashboard dodaj domene:
+   - https://anketa.visionone.si
+   - https://anonymous-burnout-tracker.vercel.app
+5. V Clerk -> Organizations mora biti omogoceno
+6. Po registraciji mora biti izbrana organizacija (ne Personal account)
+
+Za MySQL na Vercel uporabi connection string z:
+?connection_limit=1
+
+
+11) CE REGISTRACIJA OSTAJA NA ISTI STRANI
 -----------------------------------------
 Preveri:
 1. Clerk kljuce (publishable + secret)
@@ -113,7 +132,7 @@ V tej verziji je dodan force/fallback redirect:
 - sign-in -> /dashboard
 
 
-11) HITRI TEST (CHECKLIST)
+12) HITRI TEST (CHECKLIST)
 --------------------------
 [ ] /sign-up deluje in po registraciji preusmeri na /setup
 [ ] Ustvarjanje organizacije deluje
@@ -123,14 +142,14 @@ V tej verziji je dodan force/fallback redirect:
 [ ] Oddaja ankete se vidi v dashboardu
 
 
-12) VARNOSTNE OPOMBE
+13) VARNOSTNE OPOMBE
 --------------------
 - Nikoli ne commitaj .env ali .env.local.
 - Podatki zaposlenih naj ostanejo anonimni.
 - Dostop do dashboard API naj bo preko Clerk auth.
 
 
-13) PODPORA / VZDRZEVANJE
+14) PODPORA / VZDRZEVANJE
 -------------------------
 Priporoceni periodicni koraki:
 - preveri Vercel deployment status

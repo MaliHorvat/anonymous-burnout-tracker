@@ -100,6 +100,16 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[organization setup]", err);
+    const message = err instanceof Error ? err.message : "";
+    if (message.includes("Unique constraint") || message.includes("P2002")) {
+      return NextResponse.json({ ok: false, error: "Ta URL naslov ali organizacija že obstaja." }, { status: 409 });
+    }
+    if (message.includes("connect") || message.includes("ECONNREFUSED") || message.includes("P1001")) {
+      return NextResponse.json(
+        { ok: false, error: "Povezava z bazo ni uspela. Preverite DATABASE_URL na Vercel." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ ok: false, error: "Nastavitev organizacije ni uspela." }, { status: 500 });
   }
 }

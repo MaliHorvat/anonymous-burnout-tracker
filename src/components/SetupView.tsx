@@ -5,6 +5,7 @@ import { Building2, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { BurnoutLogo } from "@/components/brand/BurnoutLogo";
+import { apiErrorMessage, readApiJson } from "@/lib/api-client";
 import { slugify } from "@/lib/slug";
 
 export function SetupView() {
@@ -36,12 +37,21 @@ export function SetupView() {
     if (!userLoaded || !orgLoaded) return;
     void (async () => {
       try {
-        const res = await fetch("/api/organization/setup");
-        const data = (await res.json()) as { needs_setup?: boolean };
+        const res = await fetch("/api/organization/setup", { credentials: "same-origin" });
+        const { data, raw } = await readApiJson<{ needs_setup?: boolean; error?: string }>(res);
+        if (!data) {
+          setError(apiErrorMessage(res, null, raw, "Preverjanje nastavitve ni uspelo."));
+          return;
+        }
         if (res.ok && data.needs_setup === false) {
           router.replace("/dashboard");
           return;
         }
+        if (!res.ok) {
+          setError(apiErrorMessage(res, data, raw, "Preverjanje nastavitve ni uspelo."));
+        }
+      } catch {
+        setError("Povezava s strežnikom ni uspela. Osvežite stran in poskusite znova.");
       } finally {
         setChecking(false);
       }
@@ -55,17 +65,22 @@ export function SetupView() {
     try {
       const res = await fetch("/api/organization/setup", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, slug }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const { data, raw } = await readApiJson<{ ok?: boolean; error?: string }>(res);
+      if (!data) {
+        setError(apiErrorMessage(res, null, raw, "Nastavitev ni uspela."));
+        return;
+      }
       if (!res.ok || !data.ok) {
-        setError(data.error || "Nastavitev ni uspela.");
+        setError(apiErrorMessage(res, data, raw, "Nastavitev ni uspela."));
         return;
       }
       router.replace("/dashboard");
     } catch {
-      setError("Omrežna napaka. Poskusite znova.");
+      setError("Povezava s strežnikom ni uspela. Preverite internet in poskusite znova.");
     } finally {
       setLoading(false);
     }
