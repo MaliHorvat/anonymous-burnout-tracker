@@ -7,9 +7,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { BurnoutLogo } from "@/components/brand/BurnoutLogo";
 import { apiErrorMessage, readApiJson } from "@/lib/api-client";
 import { slugify } from "@/lib/slug";
+import { useAuthFetch } from "@/lib/use-auth-fetch";
 
 export function SetupView() {
   const router = useRouter();
+  const authFetch = useAuthFetch();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: userLoaded } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -37,7 +39,7 @@ export function SetupView() {
     if (!userLoaded || !orgLoaded) return;
     void (async () => {
       try {
-        const res = await fetch("/api/organization/setup", { credentials: "same-origin" });
+        const res = await authFetch("/api/organization/setup");
         const { data, raw } = await readApiJson<{ needs_setup?: boolean; error?: string }>(res);
         if (!data) {
           setError(apiErrorMessage(res, null, raw, "Preverjanje nastavitve ni uspelo."));
@@ -56,16 +58,20 @@ export function SetupView() {
         setChecking(false);
       }
     })();
-  }, [userLoaded, orgLoaded, router]);
+  }, [userLoaded, orgLoaded, router, authFetch]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!isSignedIn) {
+      router.replace("/sign-in");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/organization/setup", {
+      const res = await authFetch("/api/organization/setup", {
         method: "POST",
-        credentials: "same-origin",
+        skipCache: true,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, slug }),
       });

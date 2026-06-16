@@ -13,10 +13,12 @@ import {
 } from "@/components/dashboard/DashboardPanels";
 import { DashboardChrome, type DashboardSection } from "@/components/layout/DashboardChrome";
 import { publicSurveyUrl } from "@/lib/app-url";
+import { useAuthFetch } from "@/lib/use-auth-fetch";
 import type { DashboardStats, OrganizationInfo } from "@/lib/types";
 
 export function DashboardView() {
   const router = useRouter();
+  const authFetch = useAuthFetch();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -26,7 +28,7 @@ export function DashboardView() {
   const [section, setSection] = useState<DashboardSection>("pregled");
 
   const loadOrganization = useCallback(async () => {
-    const res = await fetch("/api/organization/setup");
+    const res = await authFetch("/api/organization/setup");
     const data = (await res.json()) as {
       ok?: boolean;
       organization?: { id: string; name: string; slug: string; survey_url?: string };
@@ -48,13 +50,13 @@ export function DashboardView() {
       return true;
     }
     return false;
-  }, [router]);
+  }, [router, authFetch]);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/dashboard/stats");
+      const res = await authFetch("/api/dashboard/stats");
       const data = (await res.json()) as {
         ok?: boolean;
         stats?: DashboardStats;
@@ -85,7 +87,7 @@ export function DashboardView() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, authFetch]);
 
   useEffect(() => {
     if (!authLoaded) return;

@@ -99,7 +99,23 @@ V Dashboard -> Urejanje ankete klikni:
 Sistem bo znova nalozil 8 privzetih aktivnih vprasanj.
 
 
-10) CE SETUP VRNE "OMREZNO NAPAKO" ALI NE SHRANI
+10) CE SETUP VRNE "NEAVTORIZIRANO"
+----------------------------------
+To pomeni, da streznik ne vidi Clerk seje.
+
+Preveri:
+1. Osvezi stran in se ponovno prijavi
+2. V zgornjem desnem kotu mora biti izbrana organizacija (ne Personal)
+3. V Clerk Dashboard -> Domains dodaj:
+   - https://anketa.visionone.si
+4. V Clerk -> Sessions -> Cookie settings:
+   - SameSite: Lax ali None (ce None, potreben HTTPS)
+5. Po registraciji pocakaj 2-3 sekunde pred klikom "Dokončaj nastavitev"
+
+Aplikacija zdaj poslje Bearer token z vsakim API klicem.
+
+
+11) CE SETUP VRNE "OMREZNO NAPAKO" ALI NE SHRANI
 ------------------------------------------------
 Vzrok je obicajno API, ki ne vrne JSON (404/500 HTML).
 
@@ -118,7 +134,7 @@ Za MySQL na Vercel uporabi connection string z:
 ?connection_limit=1
 
 
-11) CE REGISTRACIJA OSTAJA NA ISTI STRANI
+12) CE REGISTRACIJA OSTAJA NA ISTI STRANI
 -----------------------------------------
 Preveri:
 1. Clerk kljuce (publishable + secret)
@@ -132,7 +148,7 @@ V tej verziji je dodan force/fallback redirect:
 - sign-in -> /dashboard
 
 
-12) HITRI TEST (CHECKLIST)
+13) HITRI TEST (CHECKLIST)
 --------------------------
 [ ] /sign-up deluje in po registraciji preusmeri na /setup
 [ ] Ustvarjanje organizacije deluje
@@ -142,14 +158,14 @@ V tej verziji je dodan force/fallback redirect:
 [ ] Oddaja ankete se vidi v dashboardu
 
 
-13) VARNOSTNE OPOMBE
+14) VARNOSTNE OPOMBE
 --------------------
 - Nikoli ne commitaj .env ali .env.local.
 - Podatki zaposlenih naj ostanejo anonimni.
 - Dostop do dashboard API naj bo preko Clerk auth.
 
 
-14) PODPORA / VZDRZEVANJE
+15) PODPORA / VZDRZEVANJE
 -------------------------
 Priporoceni periodicni koraki:
 - preveri Vercel deployment status

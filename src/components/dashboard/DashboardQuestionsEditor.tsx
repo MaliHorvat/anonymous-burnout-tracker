@@ -2,7 +2,8 @@
 
 import { GripVertical, Plus, Save, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import type { SurveyQuestionRow, SurveySettingsInput } from "@/lib/types";
+import { useAuthFetch } from "@/lib/use-auth-fetch";
+import type { SurveySettingsInput } from "@/lib/types";
 
 type EditableQuestion = {
   id?: string;
@@ -21,6 +22,7 @@ const emptyQuestion = (): EditableQuestion => ({
 });
 
 export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) {
+  const authFetch = useAuthFetch();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +57,7 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
     setSeeding(true);
     setError("");
     try {
-      const res = await fetch("/api/dashboard/questions", { method: force ? "POST" : "GET" });
+      const res = await authFetch("/api/dashboard/questions", { method: force ? "POST" : "GET" });
       const data = (await res.json()) as { ok?: boolean; settings?: SurveySettingsInput; error?: string };
       if (!res.ok || !data.ok || !data.settings) {
         setError(data.error || "Nalaganje privzetih vprašanj ni uspelo.");
@@ -72,7 +74,7 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
     void (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/dashboard/questions");
+        const res = await authFetch("/api/dashboard/questions");
         const data = (await res.json()) as {
           ok?: boolean;
           settings?: SurveySettingsInput;
@@ -141,7 +143,7 @@ export function DashboardQuestionsEditor({ onSaved }: { onSaved?: () => void }) 
         questions,
       };
 
-      const res = await fetch("/api/dashboard/questions", {
+      const res = await authFetch("/api/dashboard/questions", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
