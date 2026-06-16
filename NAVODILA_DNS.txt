@@ -5,13 +5,33 @@ KRATKO: Vercel je pravilno nastavljen. Tezava je DNS (NEOSERV / propagacija),
 ne Vercel deploy.
 
 
+GLAVNI VZROK (cpanel poddomena anketa)
+--------------------------------------
+Ce vidite zapise kot:
+  webmail.anketa.visionone.si
+  cpanel.anketa.visionone.si
+  webdisk.anketa.visionone.si
+  whm.anketa.visionone.si
+
+to pomeni, da je "anketa" ustvarjena kot CPANEL PODDOMENA (gostovanje na NEOSERV).
+cPanel lahko SAM prepise ali izbrise CNAME zapis za anketa.visionone.si.
+
+REŠITEV (naredite v tem vrstnem redu):
+1. cPanel -> Subdomains (Poddomena) -> IZBRIŠITE poddomeno "anketa"
+   (ne brišite rocno vseh DNS vrstic, najprej odstranite poddomeno v cPanelu)
+2. Zone Editor -> dodajte SAMO en zapis:
+   CNAME  anketa  ->  ace82c3f0374d45a.vercel-dns-017.com
+3. Save All Records
+4. Po 10 min preverite:
+   nslookup anketa.visionone.si 8.8.8.8
+
+Ce po koraku 1 izginejo webmail.anketa / cpanel.anketa zapisi -> to je PRAVILNO.
+
+
 PREVERJENO (16.6.2026)
 ----------------------
-- https://anonymous-burnout-tracker.vercel.app  -> DELUJE (200 OK)
-- Vercel domena anketa.visionone.si             -> Valid Configuration
-- Google DNS (8.8.8.8)                         -> CNAME na Vercel (PRAVILNO)
-- Cloudflare DNS (1.1.1.1)                     -> CNAME na Vercel (PRAVILNO)
-- Telemach DNS (lokalni ISP)                   -> NXDOMAIN (DOMENA NE OBSTAJA)
+- https://anonymous-burnout-tracker.vercel.app  -> DELUJE (200 OK, app + baza OK)
+- anketa.visionone.si na NEOSERV DNS streznikih  -> zapis pogosto MANJKA (NXDOMAIN)
 
 
 ZAKAJ NE DELUJE PRI VAS
