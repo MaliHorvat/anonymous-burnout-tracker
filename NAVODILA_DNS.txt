@@ -1,0 +1,83 @@
+DNS NAVODILA - anketa.visionone.si
+==================================
+
+KRATKO: Vercel je pravilno nastavljen. Tezava je DNS (NEOSERV / propagacija),
+ne Vercel deploy.
+
+
+PREVERJENO (16.6.2026)
+----------------------
+- https://anonymous-burnout-tracker.vercel.app  -> DELUJE (200 OK)
+- Vercel domena anketa.visionone.si             -> Valid Configuration
+- Google DNS (8.8.8.8)                         -> CNAME na Vercel (PRAVILNO)
+- Cloudflare DNS (1.1.1.1)                     -> CNAME na Vercel (PRAVILNO)
+- Telemach DNS (lokalni ISP)                   -> NXDOMAIN (DOMENA NE OBSTAJA)
+
+
+ZAKAJ NE DELUJE PRI VAS
+-----------------------
+Vas internet ponudnik (Telemach) se domene anketa.visionone.si se ne resolva.
+Zato brskalnik dobi napako "ni mogoce najti streznika / DNS_PROBE_FINISHED_NXDOMAIN".
+
+To NI napaka v kodi aplikacije.
+To NI napaka v Vercel nastavitvah (ce pise Valid Configuration).
+
+
+KAJ MORATE NAREDITI V NEOSERV
+-----------------------------
+1. Prijava v NEOSERV -> DNS / Zone Editor za domeno visionone.si
+2. Preverite zapis za poddomeno "anketa":
+
+   Tip:    CNAME
+   Ime:    anketa
+   Vrednost: ace82c3f0374d45a.vercel-dns-017.com
+   TTL:    3600 (ali privzeto)
+
+   (Vrednost kopirajte iz Vercel -> Project -> Settings -> Domains -> anketa.visionone.si)
+
+3. POMEMBNO - odstranite napacne zapise:
+   - noben A zapis za "anketa" ki kaze na 127.0.0.1 ali lokalni IP
+   - noben wildcard ki blokira anketa.*
+
+4. Shranite in pocakajte propagacijo: 15 min do 48 ur (obicajno nekaj ur)
+
+
+HITRI TEST (na vasem racunalniku)
+---------------------------------
+Odprite PowerShell:
+
+  nslookup anketa.visionone.si 8.8.8.8
+
+Ce vidite CNAME na vercel-dns -> DNS je globalno OK, cakate ISP propagacijo.
+
+  nslookup anketa.visionone.si
+
+Ce pise "Non-existent domain" -> vas lokalni DNS se ni posodobil.
+
+
+ZACASNA RESITEV (dokler DNS ne propagira)
+-----------------------------------------
+Uporabite direktno:
+  https://anonymous-burnout-tracker.vercel.app
+
+Ali zacasno na racunalniku nastavite DNS na:
+  8.8.8.8 in 8.8.4.4 (Google)
+  ali 1.1.1.1 (Cloudflare)
+
+
+CLERK NASTAVITVE (ko DNS zacne delovati)
+----------------------------------------
+V Clerk Dashboard -> Domains dodajte OBE:
+  https://anketa.visionone.si
+  https://anonymous-burnout-tracker.vercel.app
+
+V Vercel Environment Variables:
+  NEXT_PUBLIC_APP_URL=https://anketa.visionone.si
+
+
+PO PROPAGACIJI PREVERITE
+------------------------
+1. https://anketa.visionone.si/                    -> landing stran
+2. https://anketa.visionone.si/api/health         -> {"ok":true,"db":true}
+3. https://anketa.visionone.si/sign-up            -> registracija
+4. https://anketa.visionone.si/setup              -> nastavitev podjetja
