@@ -5,7 +5,44 @@ KRATKO: Vercel je pravilno nastavljen. Tezava je DNS (NEOSERV / propagacija),
 ne Vercel deploy.
 
 
-GLAVNI VZROK (cpanel poddomena anketa)
+!!! GLAVNI VZROK (DVA DNS SISTEMA PRI NEOSERV) !!!
+===============================================
+To je razlog zakaj portal DELUJE, anketa NE — kljub pravilnemu zapisu v cPanelu.
+
+PRI NEOSERV obstajata DVA locena DNS sistema:
+
+1) cPanel Zone Editor (nameserverji ns71 / ns72)
+   - Tukaj vidite zapise za anketa IN portal
+   - anketa.visionone.si -> CNAME Vercel  (PRAVILNO shranjeno)
+   - portal.visionone.si  -> CNAME Vercel  (PRAVILNO shranjeno)
+
+2) Javni DNS za domeno visionone.si (nameserverji freedns1-4.neoserv.si)
+   - To uporablja CELOTEN internet (Telemach, Google, brskalniki)
+   - portal.visionone.si  -> OBSTAJA (zato nslookup portal deluje)
+   - anketa.visionone.si  -> NE OBSTAJA (zato nslookup anketa ne deluje)
+
+Zapis v cPanel Zone Editorju NI avtomatsko na freedns!
+Portal je bil dodan v javni DNS ze prej. anketa je samo v cPanelu.
+
+RESITEV (obvezno):
+------------------
+A) Prijava v MOJ NEOSERV (ne cPanel!) -> DNS / Upravljanje domene visionone.si
+   Dodajte zapis:
+   CNAME  anketa  ->  ace82c3f0374d45a.vercel-dns-017.com
+
+   ALI
+
+B) Kontakt NEOSERV podpora (kopirajte):
+   "Prosim dodajte CNAME zapis anketa.visionone.si na freedns nameserverje
+    (freedns1-4.neoserv.si). V cPanel Zone Editorju (ns71) zapis ze obstaja,
+    vendar javni DNS ga ne vidi. Portal ze deluje, anketa ne."
+
+Preverjanje po popravku:
+  nslookup portal.visionone.si     -> mora delovati (ze dela)
+  nslookup anketa.visionone.si     -> mora pokazati vercel-dns (zdaj ne dela)
+
+
+GLAVNI VZROK (cpanel poddomena anketa) — stari zapis, manj pomemben zdaj
 --------------------------------------
 Ce vidite zapise kot:
   webmail.anketa.visionone.si
