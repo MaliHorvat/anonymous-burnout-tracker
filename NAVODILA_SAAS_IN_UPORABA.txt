@@ -1,0 +1,140 @@
+ANONYMOUS BURNOUT TRACKER - CELOTNA NAVODILA (SaaS + uporaba)
+==============================================================
+
+1) KAJ JE TO
+------------
+Anonymous Burnout Tracker je SaaS aplikacija za anonimno merjenje pocutja zaposlenih.
+Vsako podjetje je locena organizacija (multi-tenant), ima svoj URL ankete in locene podatke.
+
+Primer javne povezave:
+https://anketa.visionone.si/s/moje-podjetje
+
+
+2) TEHNICNI SKLAD
+-----------------
+- Next.js 15 (App Router)
+- Clerk (registracija, prijava, organizations)
+- Prisma + MySQL
+- Vercel (deploy)
+
+
+3) OBVEZNE ENV SPREMENLJIVKE
+----------------------------
+Nastavi lokalno in na Vercel:
+
+DATABASE_URL=
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/setup
+NEXT_PUBLIC_APP_URL=https://anketa.visionone.si
+
+Opomba:
+NEXT_PUBLIC_APP_URL je kriticen za pravilen izpis in kopiranje javne povezave do ankete.
+
+
+4) ZAGON LOKALNO
+----------------
+V mapi projekta:
+
+1. npm install
+2. npm run db:push
+3. npm run dev
+
+Aplikacija je nato dosegljiva na:
+http://localhost:3000
+
+
+5) PRVI ZAGON V PRODUKCIJI (SaaS)
+---------------------------------
+1. Povezi GitHub repo z Vercel.
+2. V Vercel Project Settings -> Environment Variables dodaj vse env iz tocke 3.
+3. Nastavi DNS:
+   - anketa.visionone.si kot CNAME na Vercel target.
+4. V Clerk dashboard:
+   - omogoci Organizations
+   - dodaj dovoljene domene (anketa.visionone.si in vercel.app domeno)
+5. Zazeni migracijo:
+   - npm run db:push (na produkcijsko bazo)
+
+
+6) TOK ZA NOVEGA KUPCA (PODJETJE)
+---------------------------------
+1. Odpre /sign-up in ustvari racun.
+2. Ustvari organizacijo (ime podjetja).
+3. Aplikacija preusmeri na /setup.
+4. V setupu nastavi:
+   - ime podjetja
+   - slug (URL del)
+5. Po potrditvi gre na /dashboard.
+6. V Dashboard -> Urejanje ankete prilagodi vprasanja.
+7. V Pregled/Nastavitve kopira povezavo in jo deli zaposlenim.
+
+
+7) TOK ZA ZAPOSLENE
+-------------------
+1. Odprejo javni URL ankete /s/{slug}.
+2. Izpolnijo anonimna vprasanja (1-5).
+3. Po zelji dodajo opombo.
+4. Oddajo anketo brez prijave in brez identitete.
+
+
+8) ADMIN MODULI (DASHBOARD)
+---------------------------
+- Pregled: osnovna statistika + hitra povezava do ankete
+- Vsi odgovori: tabela oddaj
+- Opombe: tekstovni komentarji zaposlenih
+- Analitika: agregati in povprecja
+- Urejanje ankete: dodaj/uredi/izklopi vprasanja
+- Nastavitve: URL ankete, podatki organizacije
+
+
+9) CE JE "VPRASANJA SO PRAZNA"
+------------------------------
+V Dashboard -> Urejanje ankete klikni:
+"Obnovi privzeta vprasanja"
+
+Sistem bo znova nalozil 8 privzetih aktivnih vprasanj.
+
+
+10) CE REGISTRACIJA OSTAJA NA ISTI STRANI
+-----------------------------------------
+Preveri:
+1. Clerk kljuce (publishable + secret)
+2. Clerk Organizations enabled
+3. Redirect URL nastavitve v Clerk
+4. Da ni blokiran third-party cookie/script
+5. Console napake v browserju
+
+V tej verziji je dodan force/fallback redirect:
+- sign-up -> /setup
+- sign-in -> /dashboard
+
+
+11) HITRI TEST (CHECKLIST)
+--------------------------
+[ ] /sign-up deluje in po registraciji preusmeri na /setup
+[ ] Ustvarjanje organizacije deluje
+[ ] Setup shrani ime + slug
+[ ] Dashboard prikaze javni link
+[ ] /s/{slug} je javno dostopen
+[ ] Oddaja ankete se vidi v dashboardu
+
+
+12) VARNOSTNE OPOMBE
+--------------------
+- Nikoli ne commitaj .env ali .env.local.
+- Podatki zaposlenih naj ostanejo anonimni.
+- Dostop do dashboard API naj bo preko Clerk auth.
+
+
+13) PODPORA / VZDRZEVANJE
+-------------------------
+Priporoceni periodicni koraki:
+- preveri Vercel deployment status
+- preveri Clerk domene in kljuce
+- preveri zdravje baze
+- testiraj oddajo ankete 1x tedensko
+

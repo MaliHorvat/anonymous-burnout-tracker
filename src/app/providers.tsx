@@ -5,7 +5,12 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInForceRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpForceRedirectUrl="/setup"
+      signUpFallbackRedirectUrl="/setup"
+    >
       <ThemeProvider>{children}</ThemeProvider>
     </ClerkProvider>
   );
