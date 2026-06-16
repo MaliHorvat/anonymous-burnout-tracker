@@ -23,6 +23,49 @@ To NI napaka v kodi aplikacije.
 To NI napaka v Vercel nastavitvah (ce pise Valid Configuration).
 
 
+POMEMBNO - CE IMATE ZAPIS V ZONE EDITORJU, A DOMENA NE DELUJE
+-------------------------------------------------------------
+Preverjeno na NEOSERV avtoritativnih streznikih (freedns1-4.neoserv.si):
+  anketa.visionone.si -> NE OBSTAJA (NXDOMAIN)
+
+To pomeni: zapis v Zone Editorju NI se shranil / NI aktiven na DNS streznikih.
+Vercel "Valid Configuration" samo preveri, kam BI morala kazati domena — ne more
+videti, ali je zapis dejansko objavljen pri NEOSERV.
+
+Primer: www.visionone.si DELUJE (CNAME na Vercel).
+        anketa.visionone.si NE DELUJE (zapis manjka na DNS streznikih).
+
+
+KORAK ZA KORAKOM POPRAVEK V NEOSERV ZONE EDITOR
+-----------------------------------------------
+1. Odprite Zone Editor za domeno visionone.si (ne drugo domeno!)
+
+2. Kliknite "Add Record" ali uredite obstojeci zapis:
+   Tip:      CNAME
+   Ime:      anketa          (pise samo "anketa", NE celotno anketa.visionone.si)
+   Cilj:     ace82c3f0374d45a.vercel-dns-017.com
+   TTL:      14400
+
+3. OBVEZNO kliknite gumb "Save All Records" (modri gumb zgoraj)!
+
+4. Pocakajte 15-60 minut.
+
+5. Preverite v brskalniku:
+   https://dns.google/resolve?name=anketa.visionone.si&type=CNAME
+
+   Pravilen odgovor vsebuje:
+   "data":"ace82c3f0374d45a.vercel-dns-017.com"
+
+   Ce vidite "Status":3 -> zapis se se ni objavil, ponovite shranjevanje.
+
+
+CE SHRANJEVANJE NE DELUJE
+-------------------------
+- Preverite, da ste v pravem NEOSERV racunu (ista domena kot www.visionone.si)
+- Izbrisite zapis in ga dodajte znova
+- Kontaktirajte NEOSERV podporo: "CNAME zapis anketa.visionone.si se ne objavi v DNS"
+
+
 KAJ MORATE NAREDITI V NEOSERV
 -----------------------------
 1. Prijava v NEOSERV -> DNS / Zone Editor za domeno visionone.si
